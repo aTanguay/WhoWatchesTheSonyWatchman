@@ -1,3 +1,5 @@
 Hi there! I've got an idea for an ESP32 based mini media player mini TV! I have an old Sony Watchman from the 1980s that I found. The goal is to scoop out the innards, and replace them with an ESP32 with a small 1.7" IPS display. The user would be able to turn an encoder to change 'channels'. The channels would be a single TV series that we compress to play on the hardware. The user would twist the knob and we'd switch 'channels'. A channel would always be showing one show, like 'The Simpsons', or 'The X-Files'. I'd also like to support shaking the whole unit to choose a new episode...or maybe just a button. We'd like to power this by a pair or 18650 batteries for long life, and also wire up the internal speaker.
 
 Please create a project description and project plan with tasks. Please put these in files called PROJECTPLAN.MD and TASKS.MD. Please write a CLAUDE.MD to help guide the project.
+
+Trying another Push
