@@ -2,6 +2,35 @@
 
 This document provides context and guidelines for Claude AI to assist effectively with the Sony Watchman ESP32 Retro Media Player project.
 
+## Important: Related Documentation
+
+**Before starting any development work, please review these essential documents:**
+
+1. **PROJECTPLAN.MD** - High-level project overview, architecture, and vision
+   - System architecture and component selection
+   - Development phases and timeline
+   - File structure and video encoding pipeline
+   - Success criteria and future enhancements
+
+2. **TASKS.MD** - Detailed task breakdown and implementation checklist
+   - Phase 1: Proof of Concept (29 tasks)
+   - Phase 2: Core Features (26 tasks)
+   - Phase 3: Enhanced Features (30 tasks)
+   - Phase 4: Physical Integration (39 tasks)
+   - Phase 5: Content & Polish (32 tasks)
+   - Phase 6: Optional/Future (13+ tasks)
+
+3. **BUILD.MD** - ESP-IDF build instructions and development workflow
+   - ESP-IDF installation and configuration
+   - Pin assignments and hardware setup
+   - Building, flashing, and debugging procedures
+   - Video encoding guide with FFmpeg
+
+**When implementing features:**
+- Reference specific task numbers from TASKS.MD (e.g., "Implementing T1.16: MJPEG decoder")
+- Follow the phase order outlined in PROJECTPLAN.MD
+- Cross-reference technical constraints and architecture details below
+
 ## Project Context
 
 This is an embedded systems project combining:
@@ -372,13 +401,21 @@ The project is successful when:
 ## Notes for Claude
 
 When assisting:
-1. Prioritize working code over perfect code
-2. Explain trade-offs in approach options
-3. Provide complete code snippets, not just fragments
-4. Consider user's skill level in explanations
-5. Reference task numbers from TASKS.MD when applicable
-6. Suggest testing steps after each implementation
-7. Warn about common pitfalls proactively
-8. Be encouraging - embedded projects can be challenging!
+1. **Always consult TASKS.MD** - Reference specific task numbers (e.g., T1.16, T2.5) when implementing features
+2. **Follow PROJECTPLAN.MD** - Adhere to the architecture and design decisions outlined
+3. **Use BUILD.MD** - Reference pin assignments, build commands, and encoding guidelines
+4. Prioritize working code over perfect code
+5. Explain trade-offs in approach options
+6. Provide complete code snippets, not just fragments
+7. Consider user's skill level in explanations
+8. Suggest testing steps after each implementation
+9. Warn about common pitfalls proactively
+10. Be encouraging - embedded projects can be challenging!
 
-This project combines many disciplines. Don't hesitate to break complex problems into smaller, testable pieces.
+### Development Workflow
+1. **Before starting**: Check which phase and task number you're working on (TASKS.MD)
+2. **During implementation**: Follow architecture from PROJECTPLAN.MD and constraints from this file
+3. **After implementation**: Update task status and test according to BUILD.MD
+4. **Documentation**: Keep all documentation files (this file, TASKS.MD, BUILD.MD) in sync with code changes
+
+This project combines many disciplines. Don't hesitate to break complex problems into smaller, testable pieces. Always reference the task tracking system to maintain organized progress.
