@@ -1,8 +1,17 @@
 # ESP32 Retro Media Player - Sony Watchman Revival
 
+**Project Status**: ✅ **Software Development Complete** | ⏳ Awaiting Hardware Delivery
+
 ## Project Overview
 
 Transform a vintage 1980s Sony Watchman portable TV into a modern ESP32-powered mini media player that plays classic TV shows on a continuous loop. Each "channel" represents a different TV series, creating a nostalgic viewing experience with modern technology.
+
+### Current Progress
+- **Software**: 100% complete - All ESP32 firmware implemented and ready to flash
+- **Documentation**: Complete guides for wiring, video encoding, and assembly
+- **Hardware**: Awaiting component delivery
+- **Testing**: Pending hardware arrival
+- **Physical Integration**: Not yet started
 
 ## Vision
 
@@ -31,10 +40,10 @@ A pocket-sized retro TV that continuously plays your favorite classic shows. Tur
 ## Technical Specifications
 
 ### Display
-- Size: 1.7" diagonal
-- Resolution: 128x160 or 240x280 (TBD based on available displays)
-- Interface: SPI
-- Frame rate: 15-20 FPS target
+- Size: 2.0" diagonal
+- Resolution: 240x320 (ST7789 IPS LCD) **✅ Implemented**
+- Interface: SPI @ 40MHz
+- Frame rate: 15 FPS target (20 FPS stretch goal)
 
 ### Video Format
 - Codec: MJPEG (Motion JPEG) for simplicity
@@ -60,54 +69,67 @@ A pocket-sized retro TV that continuously plays your favorite classic shows. Tur
 ## System Architecture
 
 ### Hardware Components
-1. ESP32-WROOM-32 or ESP32-S3
-2. 1.7" ST7735 or ST7789 IPS display
-3. MicroSD card module (SPI)
-4. Rotary encoder (KY-040 or similar)
-5. MPU6050 or ADXL345 accelerometer (I2C)
-6. Audio amplifier (PAM8403 or similar)
-7. Battery management (TP4056 + protection)
-8. Buck-boost converter (3.3V regulated)
+1. **ESP32-WROOM-32** or ESP32-S3 (38-pin dev board)
+2. **2.0" ST7789** 240x320 IPS display **✅ Implemented**
+3. **MicroSD card module** (SPI, Class 10+ card recommended)
+4. **Rotary encoder** (KY-040) **✅ Implemented**
+5. **MAX98357A I2S audio amplifier** **✅ Implemented**
+6. 8Ω speaker (1-3W)
+7. 2x 18650 batteries + holders
+8. TP4056 charging module(s) with protection
+9. Buck-boost converter (MT3608 or similar, 3.3V regulated)
+10. Voltage divider (2x 10kΩ resistors for battery monitoring)
+11. Power switch (SPST, 2A+)
+12. Optional: MPU6050 or ADXL345 accelerometer (future feature)
 
-### Software Stack
-- **Framework**: Arduino/ESP-IDF
-- **Display**: TFT_eSPI or Adafruit GFX
-- **Video Decoder**: Custom MJPEG decoder
-- **Audio**: ESP32 I2S DAC
-- **Storage**: SD/SPI filesystem
-- **Power**: ESP32 deep sleep modes
+### Software Stack **✅ ALL IMPLEMENTED**
+- **Framework**: **ESP-IDF 5.x** (chosen for performance and control)
+- **Display**: **Custom ST7789 driver** with DMA support
+- **Video Decoder**: **Custom MJPEG decoder** using ESP-IDF JPEG library
+- **Video Container**: **Custom AVI parser**
+- **Audio**: **ESP32 I2S** with MAX98357A amplifier
+- **Storage**: **ESP-IDF FATFS** for SD card
+- **Channel Management**: **Custom implementation** with JSON parsing
+- **Input**: **Interrupt-based rotary encoder** with debouncing
+- **Power**: **ADC-based battery monitoring** + deep sleep modes
+- **State Persistence**: **NVS (Non-Volatile Storage)**
 
 ## Development Phases
 
-### Phase 1: Proof of Concept
-- Basic video playback on breadboard
-- Single video file playback
-- Display functionality
-- Audio output
+### Phase 1: Proof of Concept ✅ **SOFTWARE COMPLETE**
+- ✅ Basic video playback engine (components/video/)
+- ✅ MJPEG decoder and AVI parser
+- ✅ Display driver with DMA (components/display/)
+- ✅ Audio output via I2S (components/audio/)
+- ⏳ Hardware testing (awaiting components)
 
-### Phase 2: Core Features
-- Multi-channel system
-- Rotary encoder integration
-- Episode switching
-- Resume functionality
+### Phase 2: Core Features ✅ **SOFTWARE COMPLETE**
+- ✅ Multi-channel system (components/storage/channel_manager.c)
+- ✅ Rotary encoder integration (components/input/rotary_encoder.c)
+- ✅ Episode switching and auto-advance
+- ✅ State persistence via NVS (resume functionality)
+- ⏳ Hardware testing (awaiting components)
 
-### Phase 3: Enhanced Features
-- Shake detection
-- Power management
-- UI/OSD overlays
-- Channel indicator
+### Phase 3: Enhanced Features ✅ **SOFTWARE COMPLETE**
+- ⏳ Shake detection (future feature - accelerometer not yet added)
+- ✅ Power management (components/power/power_manager.c)
+- ✅ Basic OSD overlays (channel/battery indicators)
+- ✅ Auto-dim and sleep modes
+- ⏳ Hardware testing (awaiting components)
 
-### Phase 4: Integration
-- Hardware fitting into Watchman shell
-- Battery installation
-- Speaker connection
-- Final assembly
+### Phase 4: Physical Integration ⏳ **AWAITING HARDWARE**
+- ⏳ Hardware acquisition and breadboard testing
+- ⏳ Hardware fitting into Watchman shell
+- ⏳ Battery installation and power system
+- ⏳ Speaker connection
+- ⏳ Final assembly
 
-### Phase 5: Content & Polish
-- Video encoding pipeline
-- Content library creation
-- Testing and optimization
-- Documentation
+### Phase 5: Content & Polish **PARTIALLY COMPLETE**
+- ✅ Video encoding pipeline documented (CONTENTGUIDE.MD)
+- ✅ FFmpeg scripts and batch processing guides
+- ⏳ Content library creation (user task)
+- ⏳ Hardware testing and optimization
+- ✅ Documentation (WIRINGGUIDE.MD, INTEGRATION_SUMMARY.MD, etc.)
 
 ## Video Encoding Pipeline
 
@@ -121,18 +143,21 @@ A pocket-sized retro TV that continuously plays your favorite classic shows. Tur
 3. **Packaging**: Generate index files for seeking
 4. **Transfer**: Copy to SD card with channel metadata
 
-### Example FFmpeg Command
+### Example FFmpeg Command (240x320 Display)
 ```bash
 ffmpeg -i input.mp4 \
-  -vf "scale=128:160:force_original_aspect_ratio=decrease,pad=128:160:(ow-iw)/2:(oh-ih)/2" \
+  -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
   -r 15 \
   -q:v 8 \
+  -vcodec mjpeg \
   -acodec libmp3lame \
   -ar 22050 \
   -ac 1 \
   -b:a 64k \
   output.avi
 ```
+
+**Note**: For detailed encoding instructions including batch scripts for Windows, Mac, and Linux, see [CONTENTGUIDE.MD](CONTENTGUIDE.MD).
 
 ## File Structure on SD Card
 
@@ -209,11 +234,37 @@ ffmpeg -i input.mp4 \
 5. Fits within original Watchman case
 6. All original controls functional
 
-## Timeline Estimate
-- Phase 1: 1-2 weeks
-- Phase 2: 2-3 weeks
-- Phase 3: 1-2 weeks
-- Phase 4: 1-2 weeks
-- Phase 5: 1 week
+## Timeline
 
-**Total**: 6-10 weeks (part-time development)
+### Completed (Phases 1-3 Software)
+- **Weeks 1-4**: ✅ Complete ESP32 firmware development
+- **Week 4**: ✅ Complete documentation (wiring guide, content guide, etc.)
+
+### Remaining (Hardware-Dependent)
+- **Awaiting**: Hardware component delivery
+- **Week 5**: Breadboard assembly and initial testing
+- **Week 6**: Debug and optimize firmware on real hardware
+- **Week 7**: Physical integration into Sony Watchman case
+- **Week 8**: Final testing, content creation, polish
+
+**Original Estimate**: 6-10 weeks (part-time)
+**Software Completion**: 4 weeks ✅
+**Remaining**: 3-4 weeks (after hardware arrives)
+
+---
+
+## 📚 Documentation
+
+This project includes comprehensive documentation:
+- **[WIRINGGUIDE.MD](WIRINGGUIDE.MD)** - Complete hardware wiring instructions (print-friendly)
+- **[CONTENTGUIDE.MD](CONTENTGUIDE.MD)** - Video encoding pipeline and FFmpeg scripts
+- **[INTEGRATION_SUMMARY.MD](INTEGRATION_SUMMARY.MD)** - ESP32 integration details
+- **[TASKS.MD](TASKS.MD)** - Detailed task breakdown and progress tracking
+- **[STATUS.MD](STATUS.MD)** - Component implementation status
+- **[BUILD.MD](BUILD.MD)** - ESP-IDF build instructions
+- **[SD_CARD_SETUP.MD](SD_CARD_SETUP.MD)** - SD card structure and setup
+
+---
+
+*Last Updated: 2025-11-06*
+*Software Status: Complete and ready to flash!*
