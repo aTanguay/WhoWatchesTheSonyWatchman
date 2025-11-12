@@ -1,14 +1,28 @@
 /**
  * MJPEG Decoder Implementation
  * Uses ESP-IDF JPEG decoder component
+ *
+ * NOTE: esp_jpeg component may not be available in all ESP-IDF distributions.
+ * This file provides stub functions when JPEG decoder is not available.
  */
 
 #include "mjpeg_decoder.h"
 #include <stdlib.h>
 #include <string.h>
 #include "esp_log.h"
-#include "esp_jpeg_dec.h"
 #include "esp_timer.h"
+
+// Check if ESP JPEG decoder component is available
+#ifdef __has_include
+#  if __has_include("esp_jpeg_dec.h")
+#    define HAS_ESP_JPEG 1
+#    include "esp_jpeg_dec.h"
+#  else
+#    define HAS_ESP_JPEG 0
+#  endif
+#else
+#  define HAS_ESP_JPEG 0
+#endif
 
 static const char *TAG = "MJPEG_DEC";
 
@@ -16,7 +30,11 @@ static const char *TAG = "MJPEG_DEC";
  * MJPEG decoder structure
  */
 struct mjpeg_decoder_s {
+#if HAS_ESP_JPEG
     jpeg_decoder_handle_t jpeg_handle;
+#else
+    void *jpeg_handle;  // Stub
+#endif
     uint16_t max_width;
     uint16_t max_height;
     uint32_t last_decode_ms;
@@ -27,8 +45,6 @@ struct mjpeg_decoder_s {
  */
 mjpeg_decoder_t *mjpeg_decoder_create(uint16_t max_width, uint16_t max_height)
 {
-    ESP_LOGI(TAG, "Creating MJPEG decoder (max %dx%d)", max_width, max_height);
-
     mjpeg_decoder_t *decoder = malloc(sizeof(mjpeg_decoder_t));
     if (decoder == NULL) {
         ESP_LOGE(TAG, "Failed to allocate decoder");
@@ -38,6 +54,10 @@ mjpeg_decoder_t *mjpeg_decoder_create(uint16_t max_width, uint16_t max_height)
     decoder->max_width = max_width;
     decoder->max_height = max_height;
     decoder->last_decode_ms = 0;
+    decoder->jpeg_handle = NULL;
+
+#if HAS_ESP_JPEG
+    ESP_LOGI(TAG, "Creating MJPEG decoder (max %dx%d)", max_width, max_height);
 
     // Create JPEG decoder
     jpeg_dec_config_t config = {
@@ -55,6 +75,10 @@ mjpeg_decoder_t *mjpeg_decoder_create(uint16_t max_width, uint16_t max_height)
     }
 
     ESP_LOGI(TAG, "MJPEG decoder created successfully");
+#else
+    ESP_LOGW(TAG, "MJPEG decoder created (STUB - esp_jpeg not available)");
+    ESP_LOGW(TAG, "Video playback will not work without JPEG decoder");
+#endif
 
     return decoder;
 }
@@ -66,9 +90,11 @@ void mjpeg_decoder_destroy(mjpeg_decoder_t *decoder)
 {
     if (decoder == NULL) return;
 
+#if HAS_ESP_JPEG
     if (decoder->jpeg_handle) {
         jpeg_del_decoder(decoder->jpeg_handle);
     }
+#endif
 
     free(decoder);
 
@@ -88,6 +114,7 @@ esp_err_t mjpeg_decoder_decode_frame(mjpeg_decoder_t *decoder,
         return ESP_ERR_INVALID_ARG;
     }
 
+#if HAS_ESP_JPEG
     uint64_t start_time = esp_timer_get_time();
 
     // Parse JPEG header to get dimensions
@@ -129,6 +156,10 @@ esp_err_t mjpeg_decoder_decode_frame(mjpeg_decoder_t *decoder,
     decoder->last_decode_ms = (end_time - start_time) / 1000;
 
     return ESP_OK;
+#else
+    ESP_LOGE(TAG, "JPEG decoder not available - cannot decode frame");
+    return ESP_ERR_NOT_SUPPORTED;
+#endif
 }
 
 /**
