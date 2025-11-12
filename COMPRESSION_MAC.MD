@@ -42,13 +42,13 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 # FFmpeg settings for Waveshare 2" LCD (240x320)
 RESOLUTION="240:320"
-QUALITY="6"  # Tested and verified optimal quality
+QUALITY="6"
 
 # Find FFmpeg
 FFMPEG_PATH=$(which ffmpeg 2>/dev/null)
 
 if [ -z "$FFMPEG_PATH" ]; then
-    osascript -e 'display alert "FFmpeg Not Found" message "Please install FFmpeg via Homebrew:\n\nbrew install ffmpeg" as critical'
+    osascript -e 'display alert "FFmpeg Not Found" message "Please install FFmpeg via Homebrew: brew install ffmpeg" as critical'
     exit 1
 fi
 
@@ -62,7 +62,7 @@ for input_file in "$@"; do
     output_file="${dir}/${name}_watchman.avi"
 
     # Show start notification
-    osascript -e "display notification \"Encoding: $filename\" with title \"Watchman Encoder\""
+    osascript -e 'display notification "Encoding: '"$filename"'" with title "Watchman Encoder"'
 
     # Run FFmpeg encoding
     "$FFMPEG_PATH" -y -i "$input_file" \
@@ -79,9 +79,9 @@ for input_file in "$@"; do
     # Show completion notification
     if [ $? -eq 0 ]; then
         size=$(du -h "$output_file" | cut -f1)
-        osascript -e "display notification \"Complete! Size: $size\" with title \"Watchman Encoder\" subtitle \"$name\""
+        osascript -e 'display notification "Complete! Size: '"$size"'" with title "Watchman Encoder" subtitle "'"$name"'"'
     else
-        osascript -e "display notification \"Encoding failed! Check Console.app for errors\" with title \"Watchman Encoder\" subtitle \"$name\""
+        osascript -e 'display notification "Encoding failed! Check Console.app for errors" with title "Watchman Encoder" subtitle "'"$name"'"'
     fi
 done
 
