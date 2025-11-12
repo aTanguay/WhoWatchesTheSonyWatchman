@@ -13,7 +13,7 @@
 #define MAX_CHANNELS        16
 #define MAX_EPISODES        64
 #define MAX_NAME_LEN        64
-#define MAX_PATH_LEN        256
+#define MAX_PATH_LEN        512  // Increased to accommodate full paths safely
 
 /**
  * Episode information
