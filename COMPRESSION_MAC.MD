@@ -37,9 +37,20 @@ Copy and paste this script into the text area:
 ```bash
 #!/bin/bash
 
+# Set PATH to include common FFmpeg locations
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
 # FFmpeg settings for Waveshare 2" LCD (240x320)
 RESOLUTION="240:320"
 QUALITY="6"  # Tested and verified optimal quality
+
+# Find FFmpeg
+FFMPEG_PATH=$(which ffmpeg 2>/dev/null)
+
+if [ -z "$FFMPEG_PATH" ]; then
+    osascript -e 'display alert "FFmpeg Not Found" message "Please install FFmpeg via Homebrew:\n\nbrew install ffmpeg" as critical'
+    exit 1
+fi
 
 for input_file in "$@"; do
     # Get the directory and filename without extension
@@ -54,7 +65,7 @@ for input_file in "$@"; do
     osascript -e "display notification \"Encoding: $filename\" with title \"Watchman Encoder\""
 
     # Run FFmpeg encoding
-    /opt/homebrew/bin/ffmpeg -i "$input_file" \
+    "$FFMPEG_PATH" -y -i "$input_file" \
         -vf "scale=$RESOLUTION:force_original_aspect_ratio=decrease,pad=$RESOLUTION:(ow-iw)/2:(oh-ih)/2" \
         -r 15 \
         -q:v $QUALITY \
@@ -63,16 +74,19 @@ for input_file in "$@"; do
         -ar 22050 \
         -ac 1 \
         -b:a 64k \
-        "$output_file"
+        "$output_file" 2>&1
 
     # Show completion notification
     if [ $? -eq 0 ]; then
         size=$(du -h "$output_file" | cut -f1)
         osascript -e "display notification \"Complete! Size: $size\" with title \"Watchman Encoder\" subtitle \"$name\""
     else
-        osascript -e "display notification \"Encoding failed!\" with title \"Watchman Encoder\" subtitle \"$name\""
+        osascript -e "display notification \"Encoding failed! Check Console.app for errors\" with title \"Watchman Encoder\" subtitle \"$name\""
     fi
 done
+
+# Final notification
+osascript -e 'display notification "All files processed" with title "Watchman Encoder"'
 ```
 
 ### Step 4: Save the Quick Action
@@ -92,6 +106,78 @@ done
 **Example:**
 - Input: `Bobs_Burgers_S01E01.mp4`
 - Output: `Bobs_Burgers_S01E01_watchman.avi` (in same folder)
+
+---
+
+## Alternative: Quick Action with AppleScript (If Shell Script Doesn't Work)
+
+If the shell script approach has issues, try this AppleScript-based Quick Action:
+
+### Setup
+
+1. Open **Automator** → **New Document** → **Quick Action**
+2. Set: **Workflow receives current** `video files` **in** `Finder`
+3. Add **"Run AppleScript"** action (not "Run Shell Script")
+4. Paste this code:
+
+```applescript
+on run {input, parameters}
+    -- FFmpeg settings
+    set resolution to "240:320"
+    set quality to "6"
+
+    -- Find FFmpeg path
+    set ffmpegPath to ""
+    try
+        set ffmpegPath to do shell script "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH; which ffmpeg"
+    on error
+        display alert "FFmpeg Not Found" message "Install FFmpeg via Homebrew:\n\nbrew install ffmpeg"
+        return
+    end try
+
+    repeat with videoFile in input
+        set videoPath to POSIX path of videoFile
+
+        -- Extract filename
+        set AppleScript's text item delimiters to "/"
+        set pathComponents to text items of videoPath
+        set filename to item -1 of pathComponents
+
+        set AppleScript's text item delimiters to "."
+        set nameComponents to text items of filename
+        set baseName to items 1 thru -2 of nameComponents as string
+
+        -- Build output path
+        set outputPath to (text 1 thru -((length of filename) + 2) of videoPath) & baseName & "_watchman.avi"
+
+        display notification "Encoding: " & filename with title "Watchman Encoder"
+
+        -- Build FFmpeg command
+        set cmd to ffmpegPath & " -y -i " & quoted form of videoPath
+        set cmd to cmd & " -vf \"scale=" & resolution & ":force_original_aspect_ratio=decrease,pad=" & resolution & ":(ow-iw)/2:(oh-ih)/2\""
+        set cmd to cmd & " -r 15 -q:v " & quality & " -vcodec mjpeg"
+        set cmd to cmd & " -acodec libmp3lame -ar 22050 -ac 1 -b:a 64k"
+        set cmd to cmd & " " & quoted form of outputPath & " 2>&1"
+
+        try
+            do shell script cmd
+
+            set fileSize to do shell script "du -h " & quoted form of outputPath & " | cut -f1"
+            display notification "Complete! Size: " & fileSize with title "Watchman Encoder" subtitle baseName
+        on error errMsg
+            display notification "Failed! Check Console.app" with title "Watchman Encoder" subtitle baseName
+        end try
+    end repeat
+
+    display notification "All files processed" with title "Watchman Encoder"
+
+    return input
+end run
+```
+
+5. Save as **"Encode for Watchman (AppleScript)"**
+
+This AppleScript version handles paths and permissions differently and may work better on recent macOS versions.
 
 ---
 
@@ -261,6 +347,35 @@ If you get permission errors:
    - **Files and Folders**
    - **Automation** (for AppleScript)
 
+### Quick Action Appears But Nothing Happens
+
+If the Quick Action shows up but doesn't encode:
+
+1. **Check Console for errors**:
+   - Open **Console.app** (`/Applications/Utilities/Console.app`)
+   - Filter by "Watchman" or "ffmpeg"
+   - Run the Quick Action again and watch for errors
+
+2. **Test FFmpeg from Terminal**:
+   ```bash
+   which ffmpeg
+   ffmpeg -version
+   ```
+   If this fails, FFmpeg isn't installed or not in PATH.
+
+3. **Grant Full Disk Access** (macOS Ventura/Sonoma/Sequoia):
+   - Go to **System Settings** → **Privacy & Security** → **Full Disk Access**
+   - Click **+** and add **Automator** or **System Events**
+   - Try the Quick Action again
+
+4. **Recreate the Quick Action**:
+   - Delete the existing Quick Action from `~/Library/Services/`
+   - Follow the setup steps again with the updated script
+
+5. **Check file type**:
+   - Quick Actions only work on video files
+   - Right-click a `.mp4` or `.mkv` file to test
+
 ### Script Doesn't Appear in Quick Actions
 
 If "Encode for Watchman" doesn't show in the Quick Actions menu:
@@ -268,6 +383,7 @@ If "Encode for Watchman" doesn't show in the Quick Actions menu:
 1. Go to **System Settings** → **Extensions** → **Finder**
 2. Make sure **"Encode for Watchman"** is checked
 3. Restart Finder: Option + Right-click Finder icon → **Relaunch**
+4. Try right-clicking a video file (not a folder)
 
 ### Encoding Fails or Hangs
 
