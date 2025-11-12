@@ -230,13 +230,13 @@ power_manager_t *power_manager_init(const power_config_t *config)
     }
 
     // Initialize ADC calibration
-    adc_cali_curve_fitting_config_t cali_config = {
+    adc_cali_line_fitting_config_t cali_config = {
         .unit_id = ADC_UNIT,
         .atten = ADC_ATTEN,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
 
-    ret = adc_cali_create_scheme_curve_fitting(&cali_config, &pm->cali_handle);
+    ret = adc_cali_create_scheme_line_fitting(&cali_config, &pm->cali_handle);
     if (ret != ESP_OK) {
         ESP_LOGW(TAG, "ADC calibration failed, readings may be inaccurate");
         pm->cali_handle = NULL;
@@ -272,7 +272,7 @@ void power_manager_deinit(power_manager_t *pm)
     }
 
     if (pm->cali_handle) {
-        adc_cali_delete_scheme_curve_fitting(pm->cali_handle);
+        adc_cali_delete_scheme_line_fitting(pm->cali_handle);
     }
 
     if (pm->adc_handle) {
