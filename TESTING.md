@@ -107,17 +107,28 @@ Test 1: Solid Colors
 For TEST_MODE, you only need to wire the display:
 
 ```
-ESP32 Pin    Display Pin
-─────────    ───────────
-GPIO 23  →   MOSI/SDA
-GPIO 18  →   SCK/CLK
-GPIO 5   →   CS
-GPIO 16  →   DC/RS
-GPIO 4   →   RST/RESET
-GPIO 15  →   BL/LED (optional)
-3.3V     →   VCC
-GND      →   GND
+ESP32 Pin    Your Display Pin    Notes
+─────────    ────────────────    ─────
+GPIO 23  →   DIN                 DIN = Data IN = MOSI = SDA
+GPIO 18  →   CLK                 Clock signal
+GPIO 5   →   CS                  Chip Select
+GPIO 16  →   DC                  Data/Command select
+GPIO 4   →   RST                 Reset
+GPIO 15  →   BL                  Backlight (optional)
+3.3V     →   VCC                 Power
+GND      →   GND                 Ground
 ```
+
+**Pin Name Confusion Explained:**
+
+Different displays use different names for the same pins:
+- **DIN** (Data IN) = **MOSI** (Master Out Slave In) = **SDA** (Serial Data) → **All the same!**
+- **CLK** (Clock) = **SCK** (Serial Clock) = **SCL** (Serial Clock Line) → **All the same!**
+- **DC** (Data/Command) = **RS** (Register Select) = **A0** → **All the same!**
+- **RST** (Reset) = **RESET** = **RES** → **All the same!**
+- **BL** (Backlight) = **LED** = **LEDA** → **All the same!**
+
+Your display has: **VCC, GND, DIN, CLK, CS, DC, RST, BL** ← Perfect! All 8 pins match.
 
 **IMPORTANT**: Display must be 3.3V! Do NOT connect 5V!
 
