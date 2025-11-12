@@ -3,7 +3,16 @@
  * Main Application Entry Point
  *
  * Integrates all components: display, video/audio playback, input, power management
+ *
+ * HARDWARE TESTING MODE:
+ * Define TEST_MODE to run display tests without needing SD card or other components
+ * Perfect for initial hardware bringup and verifying display wiring
  */
+
+// ============================================================================
+// CONFIGURATION: Set to 1 to enable test mode, 0 for normal operation
+// ============================================================================
+#define TEST_MODE 0  // Change to 1 for hardware testing
 
 #include <stdio.h>
 #include <string.h>
@@ -16,14 +25,25 @@
 
 // Component headers
 #include "display.h"
-#include "video_player.h"
-#include "audio_player.h"
-#include "sd_card.h"
-#include "channel_manager.h"
-#include "rotary_encoder.h"
-#include "power_manager.h"
+
+#if TEST_MODE
+    #include "test_patterns.h"  // Test mode only needs display
+#else
+    // Full component set for normal operation
+    #include "video_player.h"
+    #include "audio_player.h"
+    #include "sd_card.h"
+    #include "channel_manager.h"
+    #include "rotary_encoder.h"
+    #include "power_manager.h"
+#endif
 
 static const char *TAG = "WATCHMAN";
+
+#if !TEST_MODE
+// ============================================================================
+// NORMAL OPERATION MODE - Full media player
+// ============================================================================
 
 // Global component handles
 static sd_card_handle_t g_sd_card;
@@ -548,8 +568,15 @@ static void app_main_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
+#endif // !TEST_MODE
+
+// ============================================================================
+// Application Entry Point
+// ============================================================================
+
 /**
  * Application entry point
+ * Supports both normal operation and hardware test mode
  */
 void app_main(void)
 {
@@ -557,8 +584,52 @@ void app_main(void)
     ESP_LOGI(TAG, "========================================");
     ESP_LOGI(TAG, "  Sony Watchman Retro Media Player");
     ESP_LOGI(TAG, "  ESP-IDF Version: %s", esp_get_idf_version());
+
+#if TEST_MODE
+    ESP_LOGI(TAG, "  MODE: Hardware Testing");
+    ESP_LOGI(TAG, "");
+    ESP_LOGI(TAG, "  ** DISPLAY TEST MODE **");
+    ESP_LOGI(TAG, "  Testing display without SD card/audio/etc");
+    ESP_LOGI(TAG, "  Change TEST_MODE to 0 for normal operation");
+#else
+    ESP_LOGI(TAG, "  MODE: Normal Operation");
+#endif
+
     ESP_LOGI(TAG, "========================================");
     ESP_LOGI(TAG, "");
+
+#if TEST_MODE
+    // ========================================================================
+    // TEST MODE: Display testing only
+    // ========================================================================
+
+    ESP_LOGI(TAG, "Initializing display for testing...");
+
+    // Initialize display
+    esp_err_t ret = display_init(NULL);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Display initialization failed: %d", ret);
+        ESP_LOGE(TAG, "Check wiring:");
+        ESP_LOGE(TAG, "  MOSI: GPIO 23");
+        ESP_LOGE(TAG, "  CLK:  GPIO 18");
+        ESP_LOGE(TAG, "  CS:   GPIO 5");
+        ESP_LOGE(TAG, "  DC:   GPIO 16");
+        ESP_LOGE(TAG, "  RST:  GPIO 4");
+        ESP_LOGE(TAG, "  BL:   GPIO 15 (optional)");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Display initialized successfully!");
+    ESP_LOGI(TAG, "Starting test pattern sequence...");
+    ESP_LOGI(TAG, "");
+
+    // Run test patterns (this loops forever)
+    run_display_tests();
+
+#else
+    // ========================================================================
+    // NORMAL MODE: Full media player
+    // ========================================================================
 
     // Create main application task on core 1
     // (Video decoding will run on core 0)
@@ -571,4 +642,5 @@ void app_main(void)
         NULL,           // Task handle
         1               // Core 1
     );
+#endif
 }
