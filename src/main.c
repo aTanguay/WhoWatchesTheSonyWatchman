@@ -12,7 +12,7 @@
 // ============================================================================
 // CONFIGURATION: Set to 1 to enable test mode, 0 for normal operation
 // ============================================================================
-#define TEST_MODE 0  // Change to 1 for hardware testing
+#define TEST_MODE 1  // Change to 1 for hardware testing
 
 #include <stdio.h>
 #include <string.h>
