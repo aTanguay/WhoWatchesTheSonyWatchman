@@ -197,7 +197,7 @@ FFmpeg gives you complete control and can create MJPEG files directly.
 ffmpeg -i input.mp4 \
   -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
   -r 15 \
-  -q:v 7 \
+  -q:v 6 \
   -vcodec mjpeg \
   -acodec libmp3lame \
   -ar 22050 \
@@ -210,7 +210,7 @@ ffmpeg -i input.mp4 \
 ```bash
 ffmpeg -i "/path/to/input/episode.mp4" \
   -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
-  -r 15 -q:v 7 -vcodec mjpeg \
+  -r 15 -q:v 6 -vcodec mjpeg \
   -acodec libmp3lame -ar 22050 -ac 1 -b:a 64k \
   "/path/to/output/episode.avi"
 ```
@@ -234,7 +234,7 @@ ffmpeg -i input.mp4 \
   - `force_original_aspect_ratio=decrease`: Shrink to fit, maintain aspect ratio
   - `pad=240:320:(ow-iw)/2:(oh-ih)/2`: Add black bars to center image
 - `-r 15`: Frame rate (15 FPS)
-- `-q:v 8`: JPEG quality (2=best, 31=worst; 6-8 is good balance)
+- `-q:v 6`: JPEG quality (2=best, 31=worst; **6 recommended** for great quality)
 - `-vcodec mjpeg`: Use MJPEG video codec
 - `-acodec libmp3lame`: Use MP3 audio codec
 - `-ar 22050`: Audio sample rate (22.05 kHz)
@@ -252,7 +252,7 @@ ffmpeg -i input.mp4 \
 INPUT_DIR="/path/to/source/episodes"
 OUTPUT_DIR="/path/to/encoded/episodes"
 RESOLUTION="240:320"  # Waveshare 2" LCD Module (verified hardware)
-QUALITY="7"           # Lower = better quality (6-8 recommended)
+QUALITY="6"           # Lower = better quality (6 recommended for best results)
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -316,7 +316,7 @@ echo "Output directory: $OUTPUT_DIR"
 $INPUT_DIR = "C:\Videos\Source"
 $OUTPUT_DIR = "C:\Videos\Encoded"
 $RESOLUTION = "240:320"  # Waveshare 2" LCD Module (verified hardware)
-$QUALITY = "8"           # Lower = better quality (6-8 recommended)
+$QUALITY = "6"           # Lower = better quality (6 recommended for best results)
 
 # Create output directory if it doesn't exist
 if (!(Test-Path $OUTPUT_DIR)) {
@@ -383,7 +383,7 @@ setlocal enabledelayedexpansion
 set INPUT_DIR=C:\Videos\Source
 set OUTPUT_DIR=C:\Videos\Encoded
 set RESOLUTION=240:320
-set QUALITY=8
+set QUALITY=6
 
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
@@ -468,9 +468,10 @@ ffmpeg -i input.mp4 \
 The main trade-off is **quality vs. file size**. Here's how to adjust:
 
 #### Video Quality (`-q:v` for MJPEG)
-- **2-5**: Excellent quality, large files (~200-300 MB/episode)
-- **6-8**: Good quality, reasonable size (~80-150 MB/episode) ⭐ **Recommended**
-- **9-12**: Acceptable quality, small files (~50-80 MB/episode)
+- **2-5**: Excellent quality, large files (~220-300 MB/episode)
+- **6**: Great quality, good size (~150-200 MB/episode) ⭐ **Recommended - Tested & Verified**
+- **7-8**: Good quality, smaller files (~130-180 MB/episode)
+- **9-12**: Acceptable quality, small files (~80-120 MB/episode)
 - **13+**: Poor quality, very small files (not recommended)
 
 #### Audio Bitrate (`-b:a`)
@@ -493,7 +494,7 @@ The main trade-off is **quality vs. file size**. Here's how to adjust:
 ffmpeg -i episode.mp4 -t 30 -c copy test_clip.mp4
 
 # Encode at different qualities for Waveshare 2" LCD (240x320)
-for q in 6 7 8 9; do
+for q in 5 6 7 8; do
     ffmpeg -i test_clip.mp4 \
         -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
         -r 15 -q:v $q -vcodec mjpeg \
@@ -569,17 +570,17 @@ When testing on actual hardware:
 
 **Assumptions (Waveshare 2" LCD - 240x320):**
 - Episode length: 22 minutes
-- Quality setting: `-q:v 7` (good quality)
+- Quality setting: `-q:v 6` (recommended, tested)
 - Resolution: 240x320
-- File size per episode: ~220 MB (estimated)
+- File size per episode: ~170 MB average (150-200 MB depending on content)
 
 **Capacity:**
-- 16 GB card: ~70 episodes (3-4 full seasons)
-- 32 GB card: ~140 episodes (6-7 full seasons)
-- 64 GB card: ~280 episodes (12-14 full seasons)
-- 128 GB card: ~560 episodes (23-28 full seasons)
+- 16 GB card: ~90 episodes (4-5 full seasons)
+- 32 GB card: ~180 episodes (7-9 full seasons)
+- 64 GB card: ~360 episodes (14-18 full seasons)
+- 128 GB card: ~720 episodes (29-36 full seasons)
 
-**Note**: Actual file sizes depend on content complexity and quality settings. Adjust `-q:v` to 8 or 9 for smaller files if needed.
+**Note**: Animation compresses better (~150-170 MB), live-action may be larger (~180-220 MB). Adjust `-q:v` to 7 or 8 for smaller files if needed.
 
 ### SD Card Recommendations
 
@@ -664,10 +665,10 @@ When testing on actual hardware:
 - **Check ESP32 code**: May need A/V sync adjustments
 
 ### Files are too large
-- **Increase compression**: Use `-q:v 10` or higher
+- **Increase compression**: Use `-q:v 7` or `-q:v 8` for smaller files
 - **Reduce audio bitrate**: Try 48k or 32k
 - **Reduce frame rate**: Try 12 FPS
-- **Increase quality setting**: Try `-q:v 8` or `-q:v 9` for smaller files (lower visual quality)
+- **Higher quality values**: `-q:v 9` or `-q:v 10` for much smaller files (lower visual quality)
 
 ### Encoding is very slow
 - **Use faster preset** (Handbrake): Select "Very Fast" preset
