@@ -51,8 +51,11 @@ static esp_err_t scan_channel_episodes(channel_t *channel, const char *channel_p
 
         episode_t *ep = &channel->episodes[channel->episode_count];
 
-        // Build full path
-        snprintf(ep->path, MAX_PATH_LEN, "%s/%s", channel_path, entry->d_name);
+        // Build full path using local buffer to avoid aliasing warnings
+        char full_path[MAX_PATH_LEN];
+        snprintf(full_path, MAX_PATH_LEN, "%s/%s", channel_path, entry->d_name);
+        strncpy(ep->path, full_path, MAX_PATH_LEN - 1);
+        ep->path[MAX_PATH_LEN - 1] = '\0';  // Ensure null termination
 
         // Get file name without extension
         strncpy(ep->name, entry->d_name, MAX_NAME_LEN - 1);
