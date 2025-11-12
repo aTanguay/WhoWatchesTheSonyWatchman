@@ -16,14 +16,20 @@ This guide covers how to convert your video content (TV shows, movies) into a fo
 
 ## Display Specifications
 
-### Common 1.7" Display Resolutions
-- **ST7735**: 128x160 pixels (common, affordable)
-- **ST7789**: 240x240 or 240x280 pixels (higher quality)
+### Verified Hardware: Waveshare 2" LCD Module
+- **Model**: Waveshare 2" LCD Module (ST7789VW)
+- **Resolution**: 240x320 pixels (portrait orientation)
+- **Aspect Ratio**: 3:4 (0.75)
+- **Status**: ✅ VERIFIED WORKING
+
+### Alternative Display Options (Not tested)
+- **ST7735**: 128x160 pixels (smaller, lower resolution)
+- **ST7789**: 240x240 pixels (square format)
 
 ### Target Specifications
-- **Resolution**: 128x160 or 240x280 (choose based on your display)
+- **Resolution**: 240x320 (portrait) for Waveshare 2" LCD Module
 - **Frame Rate**: 15 FPS (balance of smoothness and performance)
-- **Aspect Ratio**: Content will be letterboxed/pillarboxed to fit
+- **Aspect Ratio**: Content will be letterboxed/pillarboxed to fit 3:4 ratio
 - **Color Depth**: 16-bit (RGB565) - handled by display
 
 ---
@@ -42,9 +48,9 @@ This guide covers how to convert your video content (TV shows, movies) into a fo
 
 ### Video Specifications
 - **Codec**: MJPEG (Motion JPEG)
-- **Resolution**: 128x160 or 240x280 (match your display)
+- **Resolution**: 240x320 (Waveshare 2" LCD)
 - **Frame Rate**: 15 FPS
-- **Bitrate**: 400-800 kbps (adjust for quality/size)
+- **Bitrate**: 500-900 kbps (adjust for quality/size)
 - **Quality**: JPEG quality 6-8 (lower number = better quality)
 
 ### Audio Specifications
@@ -54,9 +60,9 @@ This guide covers how to convert your video content (TV shows, movies) into a fo
 - **Bitrate**: 64 kbps for MP3
 
 ### File Size Estimates
-- **22-minute episode at 128x160**: ~80-120 MB
-- **22-minute episode at 240x280**: ~150-250 MB
-- **44-minute episode at 128x160**: ~160-240 MB
+- **22-minute episode at 240x320**: ~180-280 MB
+- **44-minute episode at 240x320**: ~360-560 MB
+- **Full movie (90 min) at 240x320**: ~700 MB - 1.1 GB
 
 ---
 
@@ -98,7 +104,7 @@ Handbrake primarily focuses on H.264/H.265 encoding. For MJPEG, you'll need to u
 1. Open Handbrake
 2. Load a sample video file
 3. Configure settings:
-   - **Dimensions**: Set width to 128 (or 240) - height will auto-calculate
+   - **Dimensions**: Set width to 240 (for Waveshare 2" LCD) - height will auto-calculate
    - **Filters**: Add "Crop and Scale" if needed
    - **Video Codec**: H.264 (x264) - since MJPEG isn't well supported
    - **Frame Rate**: Set to 15 FPS constant
@@ -106,7 +112,7 @@ Handbrake primarily focuses on H.264/H.265 encoding. For MJPEG, you'll need to u
    - **Audio**: AAC codec, Mono, 64kbps, 22.05kHz
 
 4. Click "Presets" → "Save New Preset"
-5. Name it "ESP32_128x160" or similar
+5. Name it "ESP32_Waveshare_240x320" or similar
 
 #### Step 2: Add Files to Queue
 
@@ -186,12 +192,12 @@ FFmpeg gives you complete control and can create MJPEG files directly.
 
 ### Single File Encoding Example
 
-#### For 128x160 Display
+#### For Waveshare 2" LCD (240x320) - VERIFIED HARDWARE
 ```bash
 ffmpeg -i input.mp4 \
-  -vf "scale=128:160:force_original_aspect_ratio=decrease,pad=128:160:(ow-iw)/2:(oh-ih)/2" \
+  -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
   -r 15 \
-  -q:v 8 \
+  -q:v 7 \
   -vcodec mjpeg \
   -acodec libmp3lame \
   -ar 22050 \
@@ -200,17 +206,23 @@ ffmpeg -i input.mp4 \
   output.avi
 ```
 
-#### For 240x280 Display
+**Example with actual file:**
+```bash
+ffmpeg -i "/path/to/input/episode.mp4" \
+  -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
+  -r 15 -q:v 7 -vcodec mjpeg \
+  -acodec libmp3lame -ar 22050 -ac 1 -b:a 64k \
+  "/path/to/output/episode.avi"
+```
+
+#### For Alternative Displays (Not Tested)
+
+**128x160 (ST7735):**
 ```bash
 ffmpeg -i input.mp4 \
-  -vf "scale=240:280:force_original_aspect_ratio=decrease,pad=240:280:(ow-iw)/2:(oh-ih)/2" \
-  -r 15 \
-  -q:v 6 \
-  -vcodec mjpeg \
-  -acodec libmp3lame \
-  -ar 22050 \
-  -ac 1 \
-  -b:a 64k \
+  -vf "scale=128:160:force_original_aspect_ratio=decrease,pad=128:160:(ow-iw)/2:(oh-ih)/2" \
+  -r 15 -q:v 8 -vcodec mjpeg \
+  -acodec libmp3lame -ar 22050 -ac 1 -b:a 64k \
   output.avi
 ```
 
@@ -218,9 +230,9 @@ ffmpeg -i input.mp4 \
 
 - `-i input.mp4`: Input file
 - `-vf "scale=..."`: Video filter to resize and pad
-  - `scale=128:160`: Target dimensions
-  - `force_original_aspect_ratio=decrease`: Shrink to fit, maintain aspect
-  - `pad=128:160:(ow-iw)/2:(oh-ih)/2`: Add black bars to center image
+  - `scale=240:320`: Target dimensions (width x height for Waveshare)
+  - `force_original_aspect_ratio=decrease`: Shrink to fit, maintain aspect ratio
+  - `pad=240:320:(ow-iw)/2:(oh-ih)/2`: Add black bars to center image
 - `-r 15`: Frame rate (15 FPS)
 - `-q:v 8`: JPEG quality (2=best, 31=worst; 6-8 is good balance)
 - `-vcodec mjpeg`: Use MJPEG video codec
@@ -239,8 +251,8 @@ ffmpeg -i input.mp4 \
 
 INPUT_DIR="/path/to/source/episodes"
 OUTPUT_DIR="/path/to/encoded/episodes"
-RESOLUTION="128:160"  # Change to "240:280" for larger display
-QUALITY="8"           # Lower = better quality (6-8 recommended)
+RESOLUTION="240:320"  # Waveshare 2" LCD Module (verified hardware)
+QUALITY="7"           # Lower = better quality (6-8 recommended)
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -303,7 +315,7 @@ echo "Output directory: $OUTPUT_DIR"
 
 $INPUT_DIR = "C:\Videos\Source"
 $OUTPUT_DIR = "C:\Videos\Encoded"
-$RESOLUTION = "128:160"  # Change to "240:280" for larger display
+$RESOLUTION = "240:320"  # Waveshare 2" LCD Module (verified hardware)
 $QUALITY = "8"           # Lower = better quality (6-8 recommended)
 
 # Create output directory if it doesn't exist
@@ -370,7 +382,7 @@ setlocal enabledelayedexpansion
 
 set INPUT_DIR=C:\Videos\Source
 set OUTPUT_DIR=C:\Videos\Encoded
-set RESOLUTION=128:160
+set RESOLUTION=240:320
 set QUALITY=8
 
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
@@ -480,10 +492,10 @@ The main trade-off is **quality vs. file size**. Here's how to adjust:
 # Test clip extraction
 ffmpeg -i episode.mp4 -t 30 -c copy test_clip.mp4
 
-# Encode at different qualities
+# Encode at different qualities for Waveshare 2" LCD (240x320)
 for q in 6 7 8 9; do
     ffmpeg -i test_clip.mp4 \
-        -vf "scale=128:160:force_original_aspect_ratio=decrease,pad=128:160:(ow-iw)/2:(oh-ih)/2" \
+        -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
         -r 15 -q:v $q -vcodec mjpeg \
         -acodec libmp3lame -ar 22050 -ac 1 -b:a 64k \
         test_q${q}.avi
@@ -499,15 +511,21 @@ done
 
 ### Resolution Decision
 
-**128x160 (ST7735)**
-- Pros: Smaller files, faster decoding, longer battery life
-- Cons: Less detail (not noticeable on 1.7" screen)
-- Best for: Cartoons, sitcoms, longer battery life
+**240x320 (Waveshare 2" LCD Module - ST7789VW)** ⭐ **VERIFIED HARDWARE**
+- Pros: Good clarity, verified working, great balance
+- Cons: Larger files than 128x160, more processing than smaller displays
+- Best for: All content types, recommended for this project
+- Status: ✅ TESTED AND WORKING
 
-**240x280 (ST7789)**
-- Pros: Better clarity, more detail
-- Cons: Larger files, slower decoding, more power
-- Best for: Live-action shows, films, if you have the display
+**128x160 (ST7735)** - Alternative (not tested)
+- Pros: Smaller files, faster decoding, longer battery life
+- Cons: Less detail, smaller display
+- Best for: Budget builds, longer battery life priority
+
+**240x280 (ST7789)** - Alternative (not tested)
+- Pros: Square format, similar performance to 240x320
+- Cons: Different aspect ratio handling
+- Best for: Alternative builds with square displays
 
 ---
 
@@ -521,7 +539,7 @@ Before loading onto the ESP32, verify your encoded videos play correctly:
 2. Check: Tools → Codec Information
    - Video Codec should show "MJPEG" or "Motion JPEG"
    - Audio Codec should show "MP3"
-   - Resolution should match your target (128x160 or 240x280)
+   - Resolution should be 240x320 for Waveshare 2" LCD Module
    - Frame rate should be 15 FPS
 
 ### ESP32 Test Checklist
@@ -549,16 +567,19 @@ When testing on actual hardware:
 
 ### Example Storage Calculation
 
-**Assumptions:**
+**Assumptions (Waveshare 2" LCD - 240x320):**
 - Episode length: 22 minutes
-- Quality setting: `-q:v 8` (good quality)
-- Resolution: 128x160
-- File size per episode: ~100 MB
+- Quality setting: `-q:v 7` (good quality)
+- Resolution: 240x320
+- File size per episode: ~220 MB (estimated)
 
 **Capacity:**
-- 16 GB card: ~150 episodes (6-7 full seasons)
-- 32 GB card: ~310 episodes (13-15 full seasons)
-- 64 GB card: ~620 episodes (26-30 full seasons)
+- 16 GB card: ~70 episodes (3-4 full seasons)
+- 32 GB card: ~140 episodes (6-7 full seasons)
+- 64 GB card: ~280 episodes (12-14 full seasons)
+- 128 GB card: ~560 episodes (23-28 full seasons)
+
+**Note**: Actual file sizes depend on content complexity and quality settings. Adjust `-q:v` to 8 or 9 for smaller files if needed.
 
 ### SD Card Recommendations
 
@@ -634,7 +655,7 @@ When testing on actual hardware:
 ### Video is choppy/stutters
 - **Reduce quality**: Try `-q:v 10` (lower quality, faster decode)
 - **Reduce frame rate**: Try 12 FPS instead of 15
-- **Reduce resolution**: Use 128x160 instead of 240x280
+- **Reduce resolution**: Use 128x160 if you need smaller files (not recommended for Waveshare 2" LCD)
 - **Check SD card speed**: Use Class 10 or better
 
 ### Audio out of sync
@@ -646,7 +667,7 @@ When testing on actual hardware:
 - **Increase compression**: Use `-q:v 10` or higher
 - **Reduce audio bitrate**: Try 48k or 32k
 - **Reduce frame rate**: Try 12 FPS
-- **Reduce resolution**: Use 128x160 if you're on 240x280
+- **Increase quality setting**: Try `-q:v 8` or `-q:v 9` for smaller files (lower visual quality)
 
 ### Encoding is very slow
 - **Use faster preset** (Handbrake): Select "Very Fast" preset
@@ -671,10 +692,10 @@ ffmpeg -i input.mp4 \
   -vf "cropdetect=24:16:0" \
   -f null - 2>&1 | grep crop=
 
-# Use detected crop values
+# Use detected crop values for Waveshare 2" LCD
 ffmpeg -i input.mp4 \
-  -vf "crop=1920:800:0:140,scale=128:160:force_original_aspect_ratio=decrease,pad=128:160:(ow-iw)/2:(oh-ih)/2" \
-  -r 15 -q:v 8 -vcodec mjpeg \
+  -vf "crop=1920:800:0:140,scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
+  -r 15 -q:v 7 -vcodec mjpeg \
   -acodec libmp3lame -ar 22050 -ac 1 -b:a 64k \
   output.avi
 ```
