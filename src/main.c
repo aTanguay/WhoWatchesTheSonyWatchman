@@ -620,10 +620,39 @@ void app_main(void)
     }
 
     ESP_LOGI(TAG, "Display initialized successfully!");
-    ESP_LOGI(TAG, "Starting test pattern sequence...");
+    ESP_LOGI(TAG, "Display size: %dx%d", display_get_width(), display_get_height());
+    ESP_LOGI(TAG, "");
+    ESP_LOGI(TAG, "Starting SIMPLE color test...");
+    ESP_LOGI(TAG, "If you see SOLID COLORS (not noise), the display is working!");
+    ESP_LOGI(TAG, "If you still see multicolored noise, check:");
+    ESP_LOGI(TAG, "  1. Power supply is 3.3V (NOT 5V!)");
+    ESP_LOGI(TAG, "  2. DIN wire is on GPIO 19 (NOT GPIO 23)");
+    ESP_LOGI(TAG, "  3. All wires are firmly connected");
     ESP_LOGI(TAG, "");
 
-    // Run test patterns (this loops forever)
+    // Simple test - just show solid RED screen
+    ESP_LOGI(TAG, "[TEST 1/5] Filling screen with RED (0x%04X)...", COLOR_RED);
+    display_clear(COLOR_RED);
+    vTaskDelay(pdMS_TO_TICKS(5000));  // Hold for 5 seconds
+
+    ESP_LOGI(TAG, "[TEST 2/5] Filling screen with GREEN (0x%04X)...", COLOR_GREEN);
+    display_clear(COLOR_GREEN);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    ESP_LOGI(TAG, "[TEST 3/5] Filling screen with BLUE (0x%04X)...", COLOR_BLUE);
+    display_clear(COLOR_BLUE);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    ESP_LOGI(TAG, "[TEST 4/5] Filling screen with WHITE (0x%04X)...", COLOR_WHITE);
+    display_clear(COLOR_WHITE);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    ESP_LOGI(TAG, "[TEST 5/5] Filling screen with BLACK (0x%04X)...", COLOR_BLACK);
+    display_clear(COLOR_BLACK);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    // Now run full test patterns
+    ESP_LOGI(TAG, "Starting full test pattern sequence...");
     run_display_tests();
 
 #else

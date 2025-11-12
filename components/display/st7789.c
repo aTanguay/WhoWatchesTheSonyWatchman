@@ -133,7 +133,7 @@ esp_err_t st7789_init(st7789_handle_t *handle, spi_host_device_t spi_host,
         .spics_io_num = pin_cs,
         .queue_size = 7,
         .pre_cb = NULL,
-        .flags = SPI_DEVICE_NO_DUMMY,
+        .flags = 0,  // No special flags - removed SPI_DEVICE_NO_DUMMY to fix multi-line/half-duplex conflict
     };
 
     esp_err_t ret = spi_bus_add_device(spi_host, &devcfg, &handle->spi);
@@ -145,22 +145,74 @@ esp_err_t st7789_init(st7789_handle_t *handle, spi_host_device_t spi_host,
     // Hardware reset
     st7789_reset(handle);
 
-    // Initialize display controller
+    // Initialize display controller - Waveshare 2inch LCD Module sequence
     st7789_write_command(handle, ST7789_SWRESET);  // Software reset
     vTaskDelay(pdMS_TO_TICKS(150));
 
     st7789_write_command(handle, ST7789_SLPOUT);   // Sleep out
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(120));  // Waveshare requires 120ms delay
 
     // Color mode - 16-bit RGB565
     st7789_write_command(handle, ST7789_COLMOD);
     uint8_t colmod = 0x55;  // 16-bit/pixel
     st7789_write_data(handle, &colmod, 1);
 
+    // Porch settings (PORCTRL - 0xB2)
+    st7789_write_command(handle, 0xB2);
+    uint8_t porctrl[] = {0x0C, 0x0C, 0x00, 0x33, 0x33};
+    st7789_write_data(handle, porctrl, 5);
+
+    // Gate control (GCTRL - 0xB7)
+    st7789_write_command(handle, 0xB7);
+    uint8_t gctrl = 0x35;
+    st7789_write_data(handle, &gctrl, 1);
+
+    // VCOM setting (VCOMS - 0xBB)
+    st7789_write_command(handle, 0xBB);
+    uint8_t vcoms = 0x19;  // 0.725V
+    st7789_write_data(handle, &vcoms, 1);
+
+    // VDV/VRH Enable (VDVVRHEN - 0xC2)
+    st7789_write_command(handle, 0xC2);
+    uint8_t vdvvrhen = 0x01;
+    st7789_write_data(handle, &vdvvrhen, 1);
+
+    // VRH Set (VRHS - 0xC3)
+    st7789_write_command(handle, 0xC3);
+    uint8_t vrhs = 0x12;  // 4.45V
+    st7789_write_data(handle, &vrhs, 1);
+
+    // VDV Set (VDVS - 0xC4)
+    st7789_write_command(handle, 0xC4);
+    uint8_t vdvs = 0x20;
+    st7789_write_data(handle, &vdvs, 1);
+
+    // Frame Rate Control (FRCTRL2 - 0xC6)
+    st7789_write_command(handle, 0xC6);
+    uint8_t frctrl2 = 0x0F;  // 60Hz
+    st7789_write_data(handle, &frctrl2, 1);
+
+    // Power Control 1 (PWCTRL1 - 0xD0)
+    st7789_write_command(handle, 0xD0);
+    uint8_t pwctrl1[] = {0xA4, 0xA1};
+    st7789_write_data(handle, pwctrl1, 2);
+
+    // Positive Voltage Gamma Control (PVGAMCTRL - 0xE0)
+    st7789_write_command(handle, 0xE0);
+    uint8_t pvgam[] = {0xD0, 0x04, 0x0D, 0x11, 0x13, 0x2B, 0x3F, 0x54,
+                       0x4C, 0x18, 0x0D, 0x0B, 0x1F, 0x23};
+    st7789_write_data(handle, pvgam, 14);
+
+    // Negative Voltage Gamma Control (NVGAMCTRL - 0xE1)
+    st7789_write_command(handle, 0xE1);
+    uint8_t nvgam[] = {0xD0, 0x04, 0x0C, 0x11, 0x13, 0x2C, 0x3F, 0x44,
+                       0x51, 0x2F, 0x1F, 0x1F, 0x20, 0x23};
+    st7789_write_data(handle, nvgam, 14);
+
     // Memory data access control
     st7789_set_orientation(handle, 0);
 
-    // Inversion on
+    // Inversion on (required for Waveshare 2inch LCD)
     st7789_write_command(handle, ST7789_INVON);
 
     // Normal display mode
@@ -169,7 +221,7 @@ esp_err_t st7789_init(st7789_handle_t *handle, spi_host_device_t spi_host,
 
     // Display on
     st7789_write_command(handle, ST7789_DISPON);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(20));
 
     ESP_LOGI(TAG, "ST7789 initialization complete (%dx%d)", handle->width, handle->height);
 
@@ -249,11 +301,11 @@ void st7789_write_pixels(st7789_handle_t *handle, const uint16_t *data, uint32_t
     gpio_set_level(handle->pin_dc, 1);  // Data mode
 
     // ST7789 expects big-endian RGB565, ESP32 is little-endian
-    // We need to swap bytes for each pixel
+    // Bytes are already swapped by caller (e.g., st7789_fill_rect)
     spi_transaction_t trans = {
         .length = len * 16,  // bits
         .tx_buffer = data,
-        .flags = SPI_TRANS_MODE_DIO,
+        .flags = 0,  // Standard SPI mode
     };
 
     spi_device_polling_transmit(handle->spi, &trans);

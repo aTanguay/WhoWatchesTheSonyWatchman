@@ -161,6 +161,23 @@ Adjust quality (-q:v) between 5 (higher quality) and 10 (smaller size) as needed
 
 ## Common Challenges & Solutions
 
+### Challenge: Display shows multicolored noise (SOLVED)
+**Problem:** Random colored noise appears instead of test patterns or solid colors.
+
+**Root Cause:** Incorrect SPI transaction flags or configuration.
+
+**Solutions Applied:**
+1. ✅ Removed `SPI_DEVICE_NO_DUMMY` flag from SPI device configuration
+2. ✅ Removed `SPI_TRANS_MODE_DIO` flag from SPI transactions
+3. ✅ Reduced SPI clock from 40MHz to 26MHz (ESP32 limit)
+4. ✅ Changed display MOSI from GPIO 23 to GPIO 19 for board compatibility
+5. ✅ Added Waveshare-specific initialization sequence with proper gamma correction
+
+**Additional Checks:**
+- Verify display VCC is connected to 3.3V (NOT 5V)
+- Confirm all wiring matches the pin configuration above
+- Ensure firmware is up to date with latest fixes
+
 ### Challenge: Video playback is choppy
 **Solutions:**
 - Reduce video resolution or frame rate
@@ -227,34 +244,50 @@ Adjust quality (-q:v) between 5 (higher quality) and 10 (smaller size) as needed
 
 ### Essential Components
 - **ESP32**: ESP32-WROOM-32 or ESP32-S3 (more RAM)
-- **Display**: 1.7" ST7735 (128x160) or ST7789 (240x240/280)
+- **Display**: Waveshare 2" LCD Module (ST7789VW, 240x320) - **VERIFIED WORKING**
 - **SD Card**: SanDisk or Samsung Class 10, 32GB+
 - **Audio Amp**: MAX98357A (I2S, best quality) or PAM8403 (analog)
 - **Encoder**: KY-040 rotary encoder module
 - **Accelerometer**: MPU6050 (I2C, 6-axis)
 - **Power**: TP4056 charger + 2x 18650 batteries + MT3608 boost converter
 
-### Component Pinout Suggestions
+### Component Pinout (VERIFIED CONFIGURATION)
 
 ```
-ESP32 Pin Assignments:
-─────────────────────────────────────
-GPIO 23   MOSI       (SPI - Display/SD)
-GPIO 18   SCK        (SPI - Display/SD)
-GPIO 19   MISO       (SPI - SD Card)
-GPIO  5   CS_Display (Chip Select - Display)
-GPIO 17   CS_SD      (Chip Select - SD)
-GPIO 16   DC         (Display Data/Command)
-GPIO  4   RST        (Display Reset)
-GPIO 21   SDA        (I2C - Accelerometer)
-GPIO 22   SCL        (I2C - Accelerometer)
-GPIO 25   DAC1/I2S   (Audio Out)
-GPIO 26   DAC2/I2S   (Audio Out)
-GPIO 32   Encoder A  (Rotary)
-GPIO 33   Encoder B  (Rotary)
-GPIO 27   Encoder SW (Button)
-GPIO 34   Battery V  (ADC - voltage divider)
+ESP32 Pin Assignments for Waveshare 2" LCD Module:
+──────────────────────────────────────────────────
+Display (ST7789VW):
+  VCC → 3.3V        ⚠️ CRITICAL: MUST be 3.3V, NOT 5V!
+  GND → GND
+  GPIO 19   DIN/MOSI   (SPI - Display Data) ⚠️ Changed from GPIO 23
+  GPIO 18   CLK/SCK    (SPI - Display Clock)
+  GPIO  5   CS         (Chip Select - Display)
+  GPIO 16   DC         (Display Data/Command)
+  GPIO  4   RST        (Display Reset)
+  GPIO 15   BL         (Backlight PWM)
+
+SD Card (Not yet configured):
+  GPIO 19   MISO       (SPI - SD Card)
+  GPIO 23   MOSI       (SPI - SD Card) - NOT shared with display
+  GPIO 18   SCK        (SPI - Clock - shared with display)
+  GPIO 17   CS_SD      (Chip Select - SD)
+
+Other Peripherals (Planned):
+  GPIO 21   SDA        (I2C - Accelerometer)
+  GPIO 22   SCL        (I2C - Accelerometer)
+  GPIO 25   DAC1/I2S   (Audio Out)
+  GPIO 26   DAC2/I2S   (Audio Out)
+  GPIO 32   Encoder A  (Rotary)
+  GPIO 33   Encoder B  (Rotary)
+  GPIO 27   Encoder SW (Button)
+  GPIO 34   Battery V  (ADC - voltage divider)
 ```
+
+**⚠️ IMPORTANT DISPLAY NOTES:**
+1. **Display MOSI is GPIO 19** (not GPIO 23 as originally planned)
+2. **Display VCC MUST be 3.3V** - connecting to 5V may damage the display or cause corruption
+3. **SPI clock limited to 26MHz** for stability on ESP32
+4. **Waveshare 2" LCD Module requires specific initialization** (already implemented in code)
 
 ## When to Use ESP-IDF vs Arduino
 

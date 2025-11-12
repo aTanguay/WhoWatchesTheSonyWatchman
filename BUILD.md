@@ -74,8 +74,10 @@ alias get_idf='. ~/esp/esp-idf/export.sh'
 
 The default pin configuration is set in `components/display/include/display.h` and `components/storage/include/sd_card.h`.
 
-**Display Pins (ST7789):**
-- MOSI: GPIO 23
+**Display Pins (ST7789 - Waveshare 2" LCD Module):**
+- VCC: 3.3V (IMPORTANT: NOT 5V!)
+- GND: GND
+- DIN (MOSI): GPIO 19
 - CLK: GPIO 18
 - CS: GPIO 5
 - DC: GPIO 16
@@ -84,9 +86,14 @@ The default pin configuration is set in `components/display/include/display.h` a
 
 **SD Card Pins (SPI):**
 - MISO: GPIO 19
-- MOSI: GPIO 23 (shared with display)
+- MOSI: GPIO 23 (NOT shared with display - display uses GPIO 19)
 - CLK: GPIO 18 (shared with display)
 - CS: GPIO 17
+
+**IMPORTANT NOTES:**
+- Display MOSI is on GPIO 19 (not GPIO 23) for board compatibility
+- Ensure display VCC is connected to 3.3V, NOT 5V
+- SPI clock speed is limited to 26MHz for ESP32 stability
 
 **To change pin assignments:**
 1. Edit the `#define` statements in the header files
@@ -373,8 +380,54 @@ idf.py app-flash monitor
 
 This only rebuilds changed components and is much faster.
 
+## Troubleshooting
+
+### Display Shows Multicolored Noise
+
+If the display shows random colored noise instead of the test patterns:
+
+1. **Check Power Supply Voltage**
+   - Measure VCC on display module with multimeter
+   - MUST be 3.3V (NOT 5V!)
+   - Incorrect voltage causes display corruption
+
+2. **Verify Wiring**
+   - Confirm DIN is connected to GPIO 19 (not GPIO 23)
+   - Check all connections are secure
+   - Ensure no loose wires in breadboard
+
+3. **Check Serial Output**
+   - Look for SPI errors in serial monitor
+   - Common error: "clock_speed_hz should less than 26666666"
+   - If present, SPI clock is too high
+
+4. **Re-upload Firmware**
+   - Clean build: `pio run --target clean`
+   - Rebuild and upload: `pio run --target upload`
+
+### SPI Clock Speed Errors
+
+**Error:** `E (315) spi_hal: The clock_speed_hz should less than 26666666`
+
+**Solution:** The display SPI clock is already set to 26MHz in the code. This error should not appear unless you've modified the configuration.
+
+### Port Busy During Upload
+
+**Error:** `Could not exclusively lock port`
+
+**Solution:**
+```bash
+# Kill processes using the port (macOS/Linux)
+lsof | grep usbserial | awk '{print $2}' | xargs kill -9
+```
+
+### Display Initialization Fails
+
+Check serial output for specific error codes and verify all pins are correctly wired according to the pin configuration above.
+
 ## Additional Resources
 
+- **Waveshare 2" LCD Wiki**: http://www.waveshare.com/wiki/2inch_LCD_Module
 - **ESP-IDF Programming Guide**: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/
 - **ESP32 Technical Reference**: https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf
 - **FFmpeg Documentation**: https://ffmpeg.org/documentation.html
@@ -384,7 +437,7 @@ This only rebuilds changed components and is much faster.
 
 If you encounter issues:
 
-1. Check the `TROUBLESHOOTING.md` file (if available)
+1. Check the Troubleshooting section above
 2. Review ESP-IDF documentation
 3. Check ESP32 forums: https://esp32.com/
 4. Open an issue on GitHub

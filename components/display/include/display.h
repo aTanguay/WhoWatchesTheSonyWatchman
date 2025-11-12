@@ -17,7 +17,7 @@
 #define DISPLAY_ORIENTATION 0  // 0=portrait, 1=landscape, 2=portrait inverted, 3=landscape inverted
 
 // Pin definitions (adjust these for your specific wiring)
-#define PIN_DISPLAY_MOSI    23
+#define PIN_DISPLAY_MOSI    19  // Changed from 23 to avoid board labeling issues
 #define PIN_DISPLAY_CLK     18
 #define PIN_DISPLAY_CS      5
 #define PIN_DISPLAY_DC      16
@@ -26,7 +26,7 @@
 
 // SPI configuration
 #define DISPLAY_SPI_HOST    SPI2_HOST
-#define DISPLAY_SPI_CLOCK   40000000  // 40MHz (ST7789 supports up to 62.5MHz)
+#define DISPLAY_SPI_CLOCK   26000000  // 26MHz (ESP32 limit is 26.666MHz for this configuration)
 
 // RGB565 color definitions
 #define COLOR_BLACK         0x0000
