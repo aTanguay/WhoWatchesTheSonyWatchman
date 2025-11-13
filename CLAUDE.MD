@@ -4,32 +4,18 @@ This document provides context and guidelines for Claude AI to assist effectivel
 
 ## Important: Related Documentation
 
-**Before starting any development work, please review these essential documents:**
+**Before starting any development work, consult these documents:**
 
-1. **PROJECTPLAN.MD** - High-level project overview, architecture, and vision
-   - System architecture and component selection
-   - Development phases and timeline
-   - File structure and video encoding pipeline
-   - Success criteria and future enhancements
-
-2. **TASKS.MD** - Detailed task breakdown and implementation checklist
-   - Phase 1: Proof of Concept (29 tasks)
-   - Phase 2: Core Features (26 tasks)
-   - Phase 3: Enhanced Features (30 tasks)
-   - Phase 4: Physical Integration (39 tasks)
-   - Phase 5: Content & Polish (32 tasks)
-   - Phase 6: Optional/Future (13+ tasks)
-
-3. **BUILD.MD** - ESP-IDF build instructions and development workflow
-   - ESP-IDF installation and configuration
-   - Pin assignments and hardware setup
-   - Building, flashing, and debugging procedures
-   - Video encoding guide with FFmpeg
+- **[PROJECTPLAN.MD](PROJECTPLAN.MD)** - Vision, architecture, component selection, success criteria
+- **[TASKS.MD](TASKS.MD)** - Detailed task breakdown with status tracking
+- **[BUILD.MD](BUILD.MD)** - ESP-IDF build instructions and flashing procedures
+- **[docs/WIRINGGUIDE.MD](docs/WIRINGGUIDE.MD)** - Complete hardware wiring with pin assignments
+- **[docs/CONTENTGUIDE.MD](docs/CONTENTGUIDE.MD)** - Video encoding pipeline and FFmpeg scripts
 
 **When implementing features:**
 - Reference specific task numbers from TASKS.MD (e.g., "Implementing T1.16: MJPEG decoder")
 - Follow the phase order outlined in PROJECTPLAN.MD
-- Cross-reference technical constraints and architecture details below
+- Consult docs/WIRINGGUIDE.MD for hardware pin assignments
 
 ## Project Context
 
@@ -57,15 +43,9 @@ This is an embedded systems project combining:
    - Target 500-800 kbps for combined A/V
 
 4. **Display Interface**: SPI limits frame rate
-   - 128x160 or 240x280 resolution
+   - 240x320 resolution (ST7789)
    - 16-bit color (RGB565)
    - Minimize full-screen redraws
-
-### Software Constraints
-1. **Arduino Framework**: Easier for beginners but less control
-2. **ESP-IDF**: More powerful but steeper learning curve
-3. **Libraries**: TFT_eSPI (display), SD (storage), custom audio/video decoders
-4. **No hardware video decoder**: Everything in software
 
 ## Development Approach
 
@@ -81,7 +61,6 @@ This is an embedded systems project combining:
 2. **Performance Optimization**
    - Profile before optimizing
    - Use compiler optimizations (-O2 or -O3)
-   - Consider assembly for critical loops
    - Leverage DMA where available
    - Use FreeRTOS tasks effectively
 
@@ -93,90 +72,37 @@ This is an embedded systems project combining:
    - Implement graceful degradation
 
 4. **Code Structure**
-   - Modular design: separate classes for video, audio, UI, controls
+   - Modular design: separate components for video, audio, UI, controls
    - Header files for interfaces
    - Avoid circular dependencies
-   - Use namespaces or class prefixes
+   - Follow existing architecture in components/
 
 ### Recommended Code Architecture
 
 ```
-src/
-├── main.cpp                 # Main setup/loop
-├── video/
-│   ├── VideoPlayer.h/cpp    # Video playback engine
-│   ├── MJPEGDecoder.h/cpp   # MJPEG decoder
-│   └── FrameBuffer.h/cpp    # Display buffer management
-├── audio/
-│   ├── AudioPlayer.h/cpp    # Audio playback engine
-│   └── AudioDecoder.h/cpp   # MP3/PCM decoder
-├── storage/
-│   ├── ChannelManager.h/cpp # Channel/episode management
-│   ├── SDCard.h/cpp          # SD card interface
-│   └── StateManager.h/cpp    # Save/load state
-├── input/
-│   ├── RotaryEncoder.h/cpp  # Encoder handling
-│   └── ShakeSensor.h/cpp    # Accelerometer
-├── ui/
-│   ├── Display.h/cpp        # Display abstraction
-│   └── OSD.h/cpp            # On-screen display
-└── power/
-    └── PowerManager.h/cpp   # Battery/sleep management
+components/
+├── display/              # ST7789 display driver
+├── video/               # Video playback and MJPEG decoder
+├── audio/               # I2S audio output
+├── storage/             # SD card and channel management
+├── input/               # Rotary encoder with debouncing
+├── power/               # Battery monitoring and sleep modes
+└── ui/                  # OSD overlays
+
+main/
+└── main.c               # Application entry point with event loop
 ```
 
-### Video Format Recommendations
+### Video Format
 
-**Option 1: MJPEG (Recommended for simplicity)**
-- Pros: Simple decoder, well-supported, no inter-frame dependencies
-- Cons: Larger file sizes than modern codecs
-- Format: AVI container with MJPEG video + MP3 audio
+**MJPEG in AVI container** (chosen for simplicity)
+- Simple decoder, no inter-frame dependencies
+- AVI container with MJPEG video + MP3 audio
+- Target: 240x320 @ 15 FPS, ~600-800 kbps total
 
-**Option 2: Custom chunked format**
-- Pros: Optimized for ESP32, faster seeking
-- Cons: Requires custom tools
-- Format: Binary format with frame index
-
-**Option 3: H.264 (Advanced)**
-- Pros: Better compression
-- Cons: Complex decoder, may be too slow for ESP32
-- Use: Only if MJPEG performance is insufficient
-
-### FFmpeg Encoding Guidelines
-
-For 128x160 display:
-```bash
-ffmpeg -i input.mp4 \
-  -vf "scale=128:160:force_original_aspect_ratio=decrease,pad=128:160:(ow-iw)/2:(oh-ih)/2" \
-  -r 15 \
-  -q:v 8 \
-  -vcodec mjpeg \
-  -acodec libmp3lame \
-  -ar 22050 \
-  -ac 1 \
-  -b:a 64k \
-  output.avi
-```
-
-Adjust quality (-q:v) between 5 (higher quality) and 10 (smaller size) as needed.
+**For encoding details, see [docs/CONTENTGUIDE.MD](docs/CONTENTGUIDE.MD)**
 
 ## Common Challenges & Solutions
-
-### Challenge: Display shows multicolored noise (SOLVED)
-**Problem:** Random colored noise appears instead of test patterns or solid colors.
-
-**Root Cause:** Incorrect SPI transaction flags or configuration.
-
-**Solutions Applied:**
-1. ✅ Removed `SPI_DEVICE_NO_DUMMY` flag from SPI device configuration
-2. ✅ Removed `SPI_TRANS_MODE_DIO` flag from SPI transactions
-3. ✅ Reduced SPI clock from 40MHz to 26MHz (ESP32 limit)
-4. ✅ Changed display MOSI from GPIO 23 to GPIO 19 for board compatibility
-5. ✅ Added Waveshare-specific initialization sequence with proper gamma correction
-
-**Additional Checks:**
-- Verify display VCC is connected to 3.3V (NOT 5V)
-- Confirm all wiring matches the pin configuration above
-- Ensure firmware is up to date with latest fixes
 
 ### Challenge: Video playback is choppy
 **Solutions:**
@@ -198,8 +124,7 @@ Adjust quality (-q:v) between 5 (higher quality) and 10 (smaller size) as needed
 - Reduce frame buffer size
 - Stream audio in smaller chunks
 - Don't load full file lists, scan on demand
-- Use PROGMEM for constants
-- Monitor heap usage with ESP.getFreeHeap()
+- Monitor heap usage and adjust allocations
 
 ### Challenge: SD card reads are slow
 **Solutions:**
@@ -216,7 +141,6 @@ Adjust quality (-q:v) between 5 (higher quality) and 10 (smaller size) as needed
 - Use light sleep during playback
 - Deep sleep when paused >30 seconds
 - Optimize inefficient code loops
-- Consider e-paper display for ultra-low power (future)
 
 ## Testing Strategies
 
@@ -240,94 +164,43 @@ Adjust quality (-q:v) between 5 (higher quality) and 10 (smaller size) as needed
 - SD card removal during playback
 - Low battery behavior
 
-## Hardware Recommendations
+## Hardware Configuration
 
-### Essential Components
-- **ESP32**: ESP32-WROOM-32 or ESP32-S3 (more RAM)
-- **Display**: Waveshare 2" LCD Module (ST7789VW, 240x320) - **VERIFIED WORKING**
-- **SD Card**: SanDisk or Samsung Class 10, 32GB+
-- **Audio Amp**: MAX98357A (I2S, best quality) or PAM8403 (analog)
-- **Encoder**: KY-040 rotary encoder module
-- **Accelerometer**: MPU6050 (I2C, 6-axis)
-- **Power**: TP4056 charger + 2x 18650 batteries + MT3608 boost converter
+**See [docs/WIRINGGUIDE.MD](docs/WIRINGGUIDE.MD) for complete wiring instructions.**
 
-### Component Pinout (VERIFIED CONFIGURATION)
+Key points for development:
+- Display uses SPI on GPIO 19 (MOSI), GPIO 18 (SCK), GPIO 5 (CS)
+- **Display VCC MUST be 3.3V** (not 5V)
+- SPI clock limited to 26MHz for stability
+- Rotary encoder on GPIO 32/33 with interrupt-based debouncing
 
-```
-ESP32 Pin Assignments for Waveshare 2" LCD Module:
-──────────────────────────────────────────────────
-Display (ST7789VW):
-  VCC → 3.3V        ⚠️ CRITICAL: MUST be 3.3V, NOT 5V!
-  GND → GND
-  GPIO 19   DIN/MOSI   (SPI - Display Data) ⚠️ Changed from GPIO 23
-  GPIO 18   CLK/SCK    (SPI - Display Clock)
-  GPIO  5   CS         (Chip Select - Display)
-  GPIO 16   DC         (Display Data/Command)
-  GPIO  4   RST        (Display Reset)
-  GPIO 15   BL         (Backlight PWM)
+## Framework: ESP-IDF vs Arduino
 
-SD Card (Not yet configured):
-  GPIO 19   MISO       (SPI - SD Card)
-  GPIO 23   MOSI       (SPI - SD Card) - NOT shared with display
-  GPIO 18   SCK        (SPI - Clock - shared with display)
-  GPIO 17   CS_SD      (Chip Select - SD)
+**This project uses ESP-IDF 5.x** for maximum performance and control.
 
-Other Peripherals (Planned):
-  GPIO 21   SDA        (I2C - Accelerometer)
-  GPIO 22   SCL        (I2C - Accelerometer)
-  GPIO 25   DAC1/I2S   (Audio Out)
-  GPIO 26   DAC2/I2S   (Audio Out)
-  GPIO 32   Encoder A  (Rotary)
-  GPIO 33   Encoder B  (Rotary)
-  GPIO 27   Encoder SW (Button)
-  GPIO 34   Battery V  (ADC - voltage divider)
-```
-
-**⚠️ IMPORTANT DISPLAY NOTES:**
-1. **Display MOSI is GPIO 19** (not GPIO 23 as originally planned)
-2. **Display VCC MUST be 3.3V** - connecting to 5V may damage the display or cause corruption
-3. **SPI clock limited to 26MHz** for stability on ESP32
-4. **Waveshare 2" LCD Module requires specific initialization** (already implemented in code)
-
-## When to Use ESP-IDF vs Arduino
-
-**Use Arduino if:**
-- User is beginner/intermediate with embedded systems
-- Want faster initial prototyping
-- Need library ecosystem (TFT_eSPI, etc.)
-- Project complexity is moderate
-
-**Use ESP-IDF if:**
-- Need maximum performance
-- Want fine-grained control over hardware
-- Require advanced FreeRTOS features
-- User is experienced with embedded development
-
-**Recommendation**: Start with Arduino, migrate to ESP-IDF if performance is insufficient.
+**Rationale:**
+- Fine-grained hardware control needed
+- Advanced FreeRTOS features required
+- Better optimization for video/audio streaming
+- Custom drivers for ST7789 display and video playback
 
 ## Debugging Tips
 
 ### Serial Debugging
-```cpp
+```c
 // Performance monitoring
-Serial.printf("Frame decode: %dms, Free heap: %d\n",
-              decodeTime, ESP.getFreeHeap());
+ESP_LOGI(TAG, "Frame decode: %dms, Free heap: %d",
+         decode_time, esp_get_free_heap_size());
 
 // Memory leak detection
-int heap_start = ESP.getFreeHeap();
+int heap_start = esp_get_free_heap_size();
 // ... code to test ...
-Serial.printf("Heap delta: %d bytes\n", heap_start - ESP.getFreeHeap());
+ESP_LOGI(TAG, "Heap delta: %d bytes", heap_start - esp_get_free_heap_size());
 ```
-
-### Logic Analyzer Use Cases
-- SPI signal integrity (display/SD)
-- I2C communication (accelerometer)
-- Timing analysis (frame rate)
-- Encoder signal debouncing
 
 ### Common Issues
 1. **White screen**: Check display pins, SPI initialization, power
-2. **Garbage on screen**: Wrong display driver, incorrect pinout
+2. **Garbage on screen**: Wrong display driver, incorrect pinout, voltage issue
 3. **SD card not detected**: Bad connection, wrong CS pin, format as FAT32
 4. **Choppy video**: SD card too slow, increase buffer size
 5. **Audio clicking**: Buffer underruns, increase audio buffer
@@ -337,7 +210,7 @@ Serial.printf("Heap delta: %d bytes\n", heap_start - ESP.getFreeHeap());
 When writing or reviewing code:
 
 1. **Comments**: Explain WHY, not WHAT
-2. **Naming**: descriptive variable names (no single letters except loops)
+2. **Naming**: Descriptive variable names (no single letters except loops)
 3. **Functions**: Single responsibility, <50 lines
 4. **Error Handling**: Check all return codes
 5. **Magic Numbers**: Use #define or const
@@ -356,15 +229,9 @@ Run these checks:
 
 ## Resources for Reference
 
-### Libraries
-- TFT_eSPI: https://github.com/Bodmer/TFT_eSPI
-- ESP32-audioI2S: https://github.com/schreibfaul1/ESP32-audioI2S
-- ArduinoJson: https://arduinojson.org/
-- MPU6050: https://github.com/jrowberg/i2cdevlib
-
-### Documentation
+### ESP-IDF Documentation
 - ESP32 Technical Reference: https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf
-- Arduino-ESP32: https://docs.espressif.com/projects/arduino-esp32/
+- ESP-IDF Programming Guide: https://docs.espressif.com/projects/esp-idf/
 - FreeRTOS: https://www.freertos.org/Documentation/
 
 ### Video Format
@@ -375,10 +242,9 @@ Run these checks:
 ## Project-Specific Guidelines
 
 ### File Organization
-- Keep video files organized by channel folders
+- See PROJECTPLAN.MD for SD card structure
 - Use consistent naming (episode_01.avi, episode_02.avi)
 - Include metadata.json in each channel folder
-- Document file structure in README
 
 ### State Management
 - Save state every 30 seconds during playback
@@ -386,7 +252,7 @@ Run these checks:
 - Include timestamp, channel, episode in state
 - Handle corrupted state files gracefully
 
-### User Experience
+### User Experience Targets
 - Channel switch should feel instant (<1s)
 - Show feedback for all user actions
 - Battery indicator always visible
@@ -400,55 +266,39 @@ Run these checks:
 
 ## Questions to Ask User When Clarification Needed
 
-1. **Display choice**: Which specific display model? (impacts resolution/code)
-2. **Audio method**: I2S (better) or DAC (simpler)?
-3. **Shake vs button**: Which is preferred for episode switching?
-4. **Content priority**: Which shows are most important?
-5. **Build experience**: PCB design skills? Soldering experience?
-6. **Dev environment**: Arduino IDE or PlatformIO/VSCode?
-7. **Budget**: Any constraint on component costs?
-8. **Timeline**: Deadline or working at leisure?
-
-## Success Metrics
-
-The project is successful when:
-- [ ] Video plays at 15+ FPS consistently
-- [ ] Audio is in sync within 100ms
-- [ ] Channel switching takes <2 seconds
-- [ ] Battery lasts 10+ hours continuous playback
-- [ ] All components fit in original case
-- [ ] Controls feel responsive and natural
-- [ ] User is happy with the final result!
+1. **Component choices**: If hardware details are unclear
+2. **Feature priority**: When multiple approaches are possible
+3. **Build experience**: To gauge appropriate solution complexity
+4. **Timeline**: To understand urgency and testing availability
 
 ## Development Philosophy
 
-- **Start simple**: Get basic video working before adding features
+- **Start simple**: Get basic functionality working before adding features
 - **Test continuously**: Don't build too much before testing
 - **Optimize later**: Premature optimization wastes time
-- **Document as you go**: Future you will thank present you
-- **Ask for help**: Community resources and forums are valuable
-- **Have fun**: This is a cool project, enjoy the process!
+- **Document as you go**: Update docs when implementation changes
+- **Ask for help**: Clarify requirements rather than assume
 
 ---
 
 ## Notes for Claude
 
 When assisting:
-1. **Always consult TASKS.MD** - Reference specific task numbers (e.g., T1.16, T2.5) when implementing features
-2. **Follow PROJECTPLAN.MD** - Adhere to the architecture and design decisions outlined
-3. **Use BUILD.MD** - Reference pin assignments, build commands, and encoding guidelines
-4. Prioritize working code over perfect code
-5. Explain trade-offs in approach options
-6. Provide complete code snippets, not just fragments
-7. Consider user's skill level in explanations
-8. Suggest testing steps after each implementation
-9. Warn about common pitfalls proactively
+1. **Always consult TASKS.MD** - Reference specific task numbers (e.g., T1.16, T2.5)
+2. **Follow PROJECTPLAN.MD** - Adhere to architecture and design decisions
+3. **Use docs/WIRINGGUIDE.MD** - For pin assignments and hardware setup
+4. **Refer to docs/CONTENTGUIDE.MD** - For video encoding details
+5. Prioritize working code over perfect code
+6. Explain trade-offs in approach options
+7. Provide complete code snippets, not just fragments
+8. Consider user's skill level in explanations
+9. Suggest testing steps after each implementation
 10. Be encouraging - embedded projects can be challenging!
 
 ### Development Workflow
-1. **Before starting**: Check which phase and task number you're working on (TASKS.MD)
-2. **During implementation**: Follow architecture from PROJECTPLAN.MD and constraints from this file
-3. **After implementation**: Update task status and test according to BUILD.MD
-4. **Documentation**: Keep all documentation files (this file, TASKS.MD, BUILD.MD) in sync with code changes
+1. **Before starting**: Check which phase and task number (TASKS.MD)
+2. **During implementation**: Follow architecture from PROJECTPLAN.MD and constraints above
+3. **After implementation**: Test and update task status
+4. **Documentation**: Keep docs in sync with code changes
 
-This project combines many disciplines. Don't hesitate to break complex problems into smaller, testable pieces. Always reference the task tracking system to maintain organized progress.
+This project combines many disciplines. Break complex problems into smaller, testable pieces. Always reference the task tracking system to maintain organized progress.

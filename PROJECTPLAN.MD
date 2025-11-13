@@ -143,21 +143,7 @@ A pocket-sized retro TV that continuously plays your favorite classic shows. Tur
 3. **Packaging**: Generate index files for seeking
 4. **Transfer**: Copy to SD card with channel metadata
 
-### Example FFmpeg Command (240x320 Display)
-```bash
-ffmpeg -i input.mp4 \
-  -vf "scale=240:320:force_original_aspect_ratio=decrease,pad=240:320:(ow-iw)/2:(oh-ih)/2" \
-  -r 15 \
-  -q:v 8 \
-  -vcodec mjpeg \
-  -acodec libmp3lame \
-  -ar 22050 \
-  -ac 1 \
-  -b:a 64k \
-  output.avi
-```
-
-**Note**: For detailed encoding instructions including batch scripts for Windows, Mac, and Linux, see [CONTENTGUIDE.MD](CONTENTGUIDE.MD).
+**For detailed encoding instructions including batch scripts and FFmpeg commands, see [docs/CONTENTGUIDE.MD](docs/CONTENTGUIDE.MD)**
 
 ## File Structure on SD Card
 
@@ -255,16 +241,18 @@ ffmpeg -i input.mp4 \
 
 ## 📚 Documentation
 
-This project includes comprehensive documentation:
-- **[WIRINGGUIDE.MD](WIRINGGUIDE.MD)** - Complete hardware wiring instructions (print-friendly)
-- **[CONTENTGUIDE.MD](CONTENTGUIDE.MD)** - Video encoding pipeline and FFmpeg scripts
-- **[INTEGRATION_SUMMARY.MD](INTEGRATION_SUMMARY.MD)** - ESP32 integration details
-- **[TASKS.MD](TASKS.MD)** - Detailed task breakdown and progress tracking
-- **[STATUS.MD](STATUS.MD)** - Component implementation status
+**Main Project Docs:**
+- **[TASKS.MD](TASKS.MD)** - Task breakdown and progress tracking
 - **[BUILD.MD](BUILD.MD)** - ESP-IDF build instructions
-- **[SD_CARD_SETUP.MD](SD_CARD_SETUP.MD)** - SD card structure and setup
+
+**Reference Guides (in docs/):**
+- **[docs/WIRINGGUIDE.MD](docs/WIRINGGUIDE.MD)** - Hardware wiring instructions
+- **[docs/CONTENTGUIDE.MD](docs/CONTENTGUIDE.MD)** - Video encoding pipeline
+- **[docs/INTEGRATION_SUMMARY.MD](docs/INTEGRATION_SUMMARY.MD)** - ESP32 integration details
+- **[docs/STATUS.MD](docs/STATUS.MD)** - Component implementation status
+- **[docs/SD_CARD_SETUP.MD](docs/SD_CARD_SETUP.MD)** - SD card structure
 
 ---
 
-*Last Updated: 2025-11-06*
+*Last Updated: 2025-11-12*
 *Software Status: Complete and ready to flash!*
