@@ -130,18 +130,24 @@ WhoWatchesTheSonyWatchman/
 - Pins: MISO(19), MOSI(23), CLK(18), CS(17)
 
 ### Audio (I2S)
-- Output: I2S DAC
-- Pins: BCLK(26), WS(25), DOUT(22)
+- Output: I2S DAC (MAX98357A recommended)
+- Pins: BCLK(26), LRC/WS(25), DIN(22)
 - Sample Rate: 22.05kHz mono, 16-bit
+- Note: GPIO 22 changed from original I2C plan to avoid conflict
 
 ### Rotary Encoder
 - Type: KY-040 compatible
 - Pins: CLK(32), DT(33), SW(27)
 
+### Accelerometer (Optional)
+- Module: MPU6050 (6-axis IMU)
+- Pins: SDA(21), SCL(14)
+- Note: GPIO 14 used for SCL (changed from original GPIO 22)
+
 ### Power
 - Battery: 2x 18650 (6.0V - 8.4V)
 - Monitor: ADC1 Channel 6 (GPIO34)
-- Voltage Divider: 2:1 ratio
+- Voltage Divider: 3:1 ratio (20kΩ + 10kΩ)
 
 ---
 

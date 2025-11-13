@@ -85,10 +85,27 @@ The default pin configuration is set in `components/display/include/display.h` a
 - BL (Backlight): GPIO 15
 
 **SD Card Pins (SPI):**
-- MISO: GPIO 19
+- MISO: GPIO 19 (shared with display MOSI - display is write-only)
 - MOSI: GPIO 23 (NOT shared with display - display uses GPIO 19)
 - CLK: GPIO 18 (shared with display)
 - CS: GPIO 17
+
+**Audio Pins (I2S - MAX98357A recommended):**
+- BCLK: GPIO 26 (Bit Clock)
+- LRC/WS: GPIO 25 (Word Select)
+- DIN: GPIO 22 (Audio Data)
+
+**Rotary Encoder Pins:**
+- CLK (A): GPIO 32 (Encoder Channel A)
+- DT (B): GPIO 33 (Encoder Channel B)
+- SW: GPIO 27 (Push Button)
+
+**Accelerometer Pins (MPU6050 - Optional):**
+- SDA: GPIO 21 (I2C Data)
+- SCL: GPIO 14 (I2C Clock)
+
+**Power Management:**
+- Battery Monitor: GPIO 34 (ADC with 3:1 voltage divider)
 
 **IMPORTANT NOTES:**
 - Display MOSI is on GPIO 19 (not GPIO 23) for board compatibility
