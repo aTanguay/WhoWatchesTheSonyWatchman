@@ -180,12 +180,15 @@ Key points for development:
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 **Rationale:**
 - Fine-grained hardware control needed
 - Advanced FreeRTOS features required
 - Better optimization for video/audio streaming
 - Custom drivers for ST7789 display and video playback
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 Audio (I2S - MAX98357A recommended):
