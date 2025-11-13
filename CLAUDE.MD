@@ -179,12 +179,15 @@ Key points for development:
 **This project uses ESP-IDF 5.x** for maximum performance and control.
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 **Rationale:**
 - Fine-grained hardware control needed
 - Advanced FreeRTOS features required
 - Better optimization for video/audio streaming
 - Custom drivers for ST7789 display and video playback
 =======
+=======
+>>>>>>> Stashed changes
 Audio (I2S - MAX98357A recommended):
   GPIO 26   BCLK       (I2S Bit Clock)
   GPIO 25   LRC/WS     (I2S Word Select)
