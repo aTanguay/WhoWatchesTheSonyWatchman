@@ -178,11 +178,53 @@ Key points for development:
 
 **This project uses ESP-IDF 5.x** for maximum performance and control.
 
+<<<<<<< Updated upstream
 **Rationale:**
 - Fine-grained hardware control needed
 - Advanced FreeRTOS features required
 - Better optimization for video/audio streaming
 - Custom drivers for ST7789 display and video playback
+=======
+Audio (I2S - MAX98357A recommended):
+  GPIO 26   BCLK       (I2S Bit Clock)
+  GPIO 25   LRC/WS     (I2S Word Select)
+  GPIO 22   DIN/DOUT   (I2S Audio Data) ⚠️ Changed from original plan
+
+Rotary Encoder:
+  GPIO 32   CLK (A)    (Encoder Channel A)
+  GPIO 33   DT (B)     (Encoder Channel B)
+  GPIO 27   SW         (Push Button)
+
+Accelerometer (MPU6050 - Optional):
+  GPIO 21   SDA        (I2C Data)
+  GPIO 14   SCL        (I2C Clock) ⚠️ Changed from GPIO 22
+
+Power Management:
+  GPIO 34   Battery V  (ADC - voltage divider 3:1 ratio)
+```
+
+**⚠️ IMPORTANT DISPLAY NOTES:**
+1. **Display MOSI is GPIO 19** (not GPIO 23 as originally planned)
+2. **Display VCC MUST be 3.3V** - connecting to 5V may damage the display or cause corruption
+3. **SPI clock limited to 26MHz** for stability on ESP32
+4. **Waveshare 2" LCD Module requires specific initialization** (already implemented in code)
+
+## When to Use ESP-IDF vs Arduino
+
+**Use Arduino if:**
+- User is beginner/intermediate with embedded systems
+- Want faster initial prototyping
+- Need library ecosystem (TFT_eSPI, etc.)
+- Project complexity is moderate
+
+**Use ESP-IDF if:**
+- Need maximum performance
+- Want fine-grained control over hardware
+- Require advanced FreeRTOS features
+- User is experienced with embedded development
+
+**Recommendation**: Start with Arduino, migrate to ESP-IDF if performance is insufficient.
+>>>>>>> Stashed changes
 
 ## Debugging Tips
 
