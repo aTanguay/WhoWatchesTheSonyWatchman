@@ -5,6 +5,7 @@
 
 #include "video_player.h"
 #include "mjpeg_decoder.h"
+#include "avi_parser.h"
 #include "display.h"
 #include <stdlib.h>
 #include <string.h>
@@ -29,8 +30,8 @@ struct video_player_s {
     video_state_t state;
     video_info_t info;
 
-    // File handle
-    FILE *file;
+    // AVI Parser
+    avi_parser_t avi_parser;
 
     // Decoder
     mjpeg_decoder_t *decoder;
@@ -58,45 +59,50 @@ struct video_player_s {
 static void video_playback_task(void *pvParameters)
 {
     video_player_t *player = (video_player_t *)pvParameters;
+    esp_err_t ret;
+    mjpeg_frame_t frame = {0};
+    uint16_t width, height;
 
     ESP_LOGI(TAG, "Playback task started on core %d", xPortGetCoreID());
 
-    while (player->state == VIDEO_STATE_PLAYING) {
-        uint64_t frame_start = esp_timer_get_time();
-
-        // TODO: Read next MJPEG frame from file
-        // TODO: Decode frame
-        // TODO: Display frame
-        // TODO: Handle timing/sync
-
-        // Placeholder: just maintain frame rate
-        uint64_t frame_end = esp_timer_get_time();
-        uint64_t elapsed = frame_end - frame_start;
-
-        if (elapsed < player->frame_time_us) {
-            vTaskDelay(pdMS_TO_TICKS((player->frame_time_us - elapsed) / 1000));
-        }
-
-        player->current_frame++;
-
-        // Call frame callback
-        if (player->callbacks.on_frame_decoded) {
-            player->callbacks.on_frame_decoded(player->user_data, player->current_frame);
-        }
-
-        // Check for end of video
-        if (player->current_frame >= player->info.frame_count) {
-            ESP_LOGI(TAG, "Playback complete");
-            player->state = VIDEO_STATE_STOPPED;
-
-            if (player->callbacks.on_playback_complete) {
-                player->callbacks.on_playback_complete(player->user_data);
-            }
-        }
+    // We use the pre-allocated frame buffers for double buffering
+    // player->frame_buffer[0] and [1]
+    
+    // Ensure buffers are ready
+    if (!player->frame_buffer[0] || !player->frame_buffer[1]) {
+        ESP_LOGE(TAG, "Frame buffers not allocated");
+        player->state = VIDEO_STATE_ERROR;
+        vTaskDelete(NULL);
+        return;
     }
 
-    ESP_LOGI(TAG, "Playback task ended");
-    vTaskDelete(NULL);
+    int decode_idx = 0;  // Index of buffer we are decoding INTO
+    int display_idx = 1; // Index of buffer being displayed (initially unused)
+    bool first_frame = true;
+
+    while (player->state == VIDEO_STATE_PLAYING || player->state == VIDEO_STATE_PAUSED) {
+        // Handle pause state
+        if (player->state == VIDEO_STATE_PAUSED) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+
+        uint64_t frame_start = esp_timer_get_time();
+
+        // 1. Read next MJPEG frame from file
+        
+        // Wait, I can't abort a tool call once I've started typing it in the thought process? 
+        // No, I can just change what I send.
+        
+        // I will switch to multi_replace_file_content to:
+        // 1. Add #include "avi_parser.h"
+        // 2. Update struct video_player_s
+        // 3. Update video_player_open
+        // 4. Update video_player_close
+        // 5. Implement video_playback_task
+        
+        // Let's do that.
+    }
 }
 
 /**
@@ -189,26 +195,23 @@ esp_err_t video_player_open(video_player_t *player, const char *file_path)
     // Close existing file
     video_player_close(player);
 
-    // Open file
-    player->file = fopen(file_path, "rb");
-    if (player->file == NULL) {
-        ESP_LOGE(TAG, "Failed to open video file: %s", file_path);
-        return ESP_FAIL;
+    // Open AVI file using parser
+    esp_err_t ret = avi_parser_open(&player->avi_parser, file_path);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open AVI file: %s", file_path);
+        return ret;
     }
 
-    // Copy file path
+    // Copy info from parser
     strncpy(player->info.path, file_path, sizeof(player->info.path) - 1);
+    player->info.width = player->avi_parser.video_info.width;
+    player->info.height = player->avi_parser.video_info.height;
+    player->info.fps = (uint16_t)avi_parser_get_fps(&player->avi_parser);
+    player->info.frame_count = avi_parser_get_total_frames(&player->avi_parser);
+    player->info.duration_sec = player->info.frame_count / (player->info.fps > 0 ? player->info.fps : 15);
 
-    // TODO: Parse AVI/MJPEG file header to get:
-    // - Frame rate
-    // - Resolution
-    // - Frame count
-    // For now, use defaults
-    player->info.width = 240;
-    player->info.height = 240;
-    player->info.fps = 15;
-    player->info.frame_count = 1000;  // Placeholder
-    player->info.duration_sec = player->info.frame_count / player->info.fps;
+    // Use default FPS if parser returned 0
+    if (player->info.fps == 0) player->info.fps = 15;
 
     player->frame_time_us = 1000000 / player->info.fps;
     player->current_frame = 0;
@@ -227,10 +230,7 @@ void video_player_close(video_player_t *player)
 {
     if (player == NULL) return;
 
-    if (player->file) {
-        fclose(player->file);
-        player->file = NULL;
-    }
+    avi_parser_close(&player->avi_parser);
 
     player->current_frame = 0;
 }
@@ -240,7 +240,7 @@ void video_player_close(video_player_t *player)
  */
 esp_err_t video_player_play(video_player_t *player)
 {
-    if (player == NULL || player->file == NULL) return ESP_FAIL;
+    if (player == NULL || !player->avi_parser.initialized) return ESP_FAIL;
 
     if (player->state == VIDEO_STATE_PLAYING) {
         ESP_LOGW(TAG, "Already playing");
@@ -315,12 +315,13 @@ esp_err_t video_player_stop(video_player_t *player)
  */
 esp_err_t video_player_seek(video_player_t *player, uint32_t frame_num)
 {
-    if (player == NULL || player->file == NULL) return ESP_FAIL;
+    if (player == NULL || !player->avi_parser.initialized) return ESP_FAIL;
 
-    // TODO: Implement seeking in AVI/MJPEG file
-    ESP_LOGW(TAG, "Seek not yet implemented");
-
-    return ESP_ERR_NOT_SUPPORTED;
+    esp_err_t ret = avi_parser_seek(&player->avi_parser, frame_num);
+    if (ret == ESP_OK) {
+        player->current_frame = frame_num;
+    }
+    return ret;
 }
 
 /**
